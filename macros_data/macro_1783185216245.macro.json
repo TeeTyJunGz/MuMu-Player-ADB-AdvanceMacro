@@ -1,0 +1,240 @@
+{
+  "id": "macro_1783185216245",
+  "name": "Recorded Macro",
+  "description": "Recorded",
+  "created_at": "2026-07-05T00:13:36.245072",
+  "modified_at": "2026-07-05T00:13:36.245072",
+  "nodes": [
+    {
+      "id": "tap_1783185187595",
+      "type": "tap",
+      "name": "Tap (906,647)",
+      "x": 906,
+      "y": 647,
+      "duration_ms": 91,
+      "conditions": [],
+      "ui_x": 50,
+      "ui_y": 50,
+      "rotation": 0
+    },
+    {
+      "id": "delay_1783185188767",
+      "type": "delay",
+      "name": "Wait 1172ms",
+      "delay_ms": 1172,
+      "ui_x": 230,
+      "ui_y": 50,
+      "rotation": 0
+    },
+    {
+      "id": "tap_1783185188955",
+      "type": "tap",
+      "name": "Tap (902,620)",
+      "x": 902,
+      "y": 620,
+      "duration_ms": 188,
+      "conditions": [],
+      "ui_x": 410,
+      "ui_y": 50,
+      "rotation": 0
+    },
+    {
+      "id": "delay_1783185193696",
+      "type": "delay",
+      "name": "Wait 4741ms",
+      "delay_ms": 4741,
+      "ui_x": 590,
+      "ui_y": 50,
+      "rotation": 0
+    },
+    {
+      "id": "tap_1783185193808",
+      "type": "tap",
+      "name": "Tap (542,372)",
+      "x": 542,
+      "y": 372,
+      "duration_ms": 112,
+      "conditions": [],
+      "ui_x": 770,
+      "ui_y": 50,
+      "rotation": 0
+    },
+    {
+      "id": "delay_1783185194512",
+      "type": "delay",
+      "name": "Wait 704ms",
+      "delay_ms": 704,
+      "ui_x": 770,
+      "ui_y": 170,
+      "rotation": 180
+    },
+    {
+      "id": "tap_1783185194585",
+      "type": "tap",
+      "name": "Tap (600,362)",
+      "x": 600,
+      "y": 362,
+      "duration_ms": 73,
+      "conditions": [],
+      "ui_x": 590,
+      "ui_y": 170,
+      "rotation": 180
+    },
+    {
+      "id": "delay_1783185206558",
+      "type": "delay",
+      "name": "Wait 11973ms",
+      "delay_ms": 11973,
+      "ui_x": 410,
+      "ui_y": 170,
+      "rotation": 180
+    },
+    {
+      "id": "tap_1783185206646",
+      "type": "tap",
+      "name": "Tap (1188,37)",
+      "x": 1188,
+      "y": 37,
+      "duration_ms": 88,
+      "conditions": [],
+      "ui_x": 230,
+      "ui_y": 170,
+      "rotation": 180
+    },
+    {
+      "id": "delay_1783185207738",
+      "type": "delay",
+      "name": "Wait 1092ms",
+      "delay_ms": 1092,
+      "ui_x": 50,
+      "ui_y": 170,
+      "rotation": 180
+    },
+    {
+      "id": "tap_1783185207795",
+      "type": "tap",
+      "name": "Tap (671,415)",
+      "x": 671,
+      "y": 415,
+      "duration_ms": 57,
+      "conditions": [],
+      "ui_x": 50,
+      "ui_y": 290,
+      "rotation": 0
+    },
+    {
+      "id": "delay_1783185208646",
+      "type": "delay",
+      "name": "Wait 851ms",
+      "delay_ms": 851,
+      "ui_x": 230,
+      "ui_y": 290,
+      "rotation": 0
+    },
+    {
+      "id": "tap_1783185208760",
+      "type": "tap",
+      "name": "Tap (636,350)",
+      "x": 636,
+      "y": 350,
+      "duration_ms": 114,
+      "conditions": [],
+      "ui_x": 410,
+      "ui_y": 290,
+      "rotation": 0
+    },
+    {
+      "id": "delay_1783185210766",
+      "type": "delay",
+      "name": "Wait 2006ms",
+      "delay_ms": 2006,
+      "ui_x": 590,
+      "ui_y": 290,
+      "rotation": 0
+    },
+    {
+      "id": "tap_1783185210852",
+      "type": "tap",
+      "name": "Tap (474,627)",
+      "x": 474,
+      "y": 627,
+      "duration_ms": 86,
+      "conditions": [],
+      "ui_x": 770,
+      "ui_y": 290,
+      "rotation": 0
+    }
+  ],
+  "connections": [
+    {
+      "from": "tap_1783185187595",
+      "to": "delay_1783185188767",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185188767",
+      "to": "tap_1783185188955",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185188955",
+      "to": "delay_1783185193696",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185193696",
+      "to": "tap_1783185193808",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185193808",
+      "to": "delay_1783185194512",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185194512",
+      "to": "tap_1783185194585",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185194585",
+      "to": "delay_1783185206558",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185206558",
+      "to": "tap_1783185206646",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185206646",
+      "to": "delay_1783185207738",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185207738",
+      "to": "tap_1783185207795",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185207795",
+      "to": "delay_1783185208646",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185208646",
+      "to": "tap_1783185208760",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185208760",
+      "to": "delay_1783185210766",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185210766",
+      "to": "tap_1783185210852",
+      "label": "default"
+    }
+  ]
+}

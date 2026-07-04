@@ -1,5 +1,6 @@
 import time
 import threading
+import random
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 import adbutils
@@ -23,16 +24,18 @@ class MacroExecutor:
         
         self.state = "idle"  # idle, running, paused, stopped
         self.execution_log = []
-        self.current_node_id = None
-        self.pause_event = threading.Event()
+        self.loop_states = {} # track iterations and start times per loop color id
+        
         self.stop_event = threading.Event()
-    
+        self.pause_event = threading.Event()
+        
     def start(self):
         """Start macro execution in background thread"""
         self.state = "running"
         self.pause_event.clear()
         self.stop_event.clear()
         self.execution_log = []
+        self.loop_states = {}
         
         thread = threading.Thread(target=self._execute, daemon=True)
         thread.start()
@@ -65,17 +68,10 @@ class MacroExecutor:
                 return
             
             current_id = start_nodes[0]
-            visited = set()
-            
             while current_id and not self.stop_event.is_set():
                 if self.state == "paused":
                     self.pause_event.wait()
                 
-                if current_id in visited and current_id not in self._get_loop_nodes():
-                    # Avoid infinite loops (unless it's a loop node)
-                    break
-                
-                visited.add(current_id)
                 self.current_node_id = current_id
                 
                 node = self.macro.nodes.get(current_id)
@@ -84,7 +80,11 @@ class MacroExecutor:
                 
                 # Execute node
                 result = self._execute_node(node)
-                self._log("info", f"Executed {node.type}: {node.name} - Result: {result}")
+                if result.get("success"):
+                    self._log("info", f"✅ {node.name}")
+                else:
+                    err = result.get("error", result.get("reason", "Failed"))
+                    self._log("error", f"❌ {node.name} - {err}")
                 
                 # Determine next node
                 if result.get("branch_to"):
@@ -117,8 +117,10 @@ class MacroExecutor:
                 result = self._execute_screenshot(node)
             elif node.type == "delay":
                 result = self._execute_delay(node)
-            elif node.type == "loop":
-                result = self._execute_loop(node)
+            elif node.type == "loop_start":
+                result = self._execute_loop_start(node)
+            elif node.type == "loop_end":
+                result = self._execute_loop_end(node)
             elif node.type == "condition":
                 result = self._execute_condition(node)
         
@@ -141,9 +143,32 @@ class MacroExecutor:
             if not self._check_conditions(conditions, all_met):
                 return {"success": False, "skipped": True}
         
+        # Apply Randomization
+        if node.data.get("randomize"):
+            rand_x = node.data.get("rand_x", 2)
+            rand_y = node.data.get("rand_y", 2)
+            dmin = node.data.get("rand_dur_min", 20)
+            dmax = node.data.get("rand_dur_max", 80)
+            pmin = node.data.get("rand_predelay_min", 0)
+            pmax = node.data.get("rand_predelay_max", 50)
+            
+            # Pre-delay
+            predelay = random.randint(min(pmin, pmax), max(pmin, pmax))
+            if predelay > 0:
+                if self.stop_event.wait(predelay / 1000):
+                    return {"success": False, "error": "Stopped"}
+            
+            x += random.randint(-rand_x, rand_x)
+            y += random.randint(-rand_y, rand_y)
+            # Ensure coordinates don't go negative
+            x = max(0, x)
+            y = max(0, y)
+            
+            duration = random.randint(min(dmin, dmax), max(dmin, dmax))
+        
         # Perform tap
         self.device.shell(f"input tap {x} {y}")
-        time.sleep(duration / 1000)
+        self.stop_event.wait(duration / 1000)
         
         return {"success": True}
     
@@ -157,8 +182,10 @@ class MacroExecutor:
             self.device.shell(f"input text '{text}'")
         
         for key in keys:
+            if self.stop_event.is_set():
+                break
             self.device.shell(f"input keyevent {self._key_to_keycode(key)}")
-            time.sleep(delay / 1000)
+            self.stop_event.wait(delay / 1000)
         
         return {"success": True}
     
@@ -169,15 +196,17 @@ class MacroExecutor:
         start_time = time.time()
         
         if wait_type == "time":
-            time.sleep(node.data.get("time_ms", 1000) / 1000)
+            self.stop_event.wait(node.data.get("time_ms", 1000) / 1000)
             return {"success": True}
         
         elif wait_type == "pixel":
             pixel_cond = node.data.get("pixel_condition", {})
             while time.time() - start_time < max_wait / 1000:
+                if self.stop_event.is_set():
+                    break
                 if self._check_pixel_color(**pixel_cond):
                     return {"success": True}
-                time.sleep(0.1)
+                self.stop_event.wait(0.1)
             return {"success": False, "reason": "timeout"}
         
         return {"success": True}
@@ -185,7 +214,7 @@ class MacroExecutor:
     def _execute_delay(self, node) -> Dict[str, Any]:
         """Execute delay node"""
         delay_ms = node.data.get("delay_ms", 1000)
-        time.sleep(delay_ms / 1000)
+        self.stop_event.wait(delay_ms / 1000)
         return {"success": True}
     
     def _execute_screenshot(self, node) -> Dict[str, Any]:
@@ -199,20 +228,78 @@ class MacroExecutor:
         # TODO: Implement OCR if tesseract available
         return {"success": True, "text": ""}
     
-    def _execute_loop(self, node) -> Dict[str, Any]:
-        """Execute loop node"""
-        loop_type = node.data.get("loop_type", "fixed_count")
-        iterations = node.data.get("iterations", 1)
+    def _execute_loop_start(self, node) -> Dict[str, Any]:
+        """Execute loop start node"""
+        color_id = node.data.get("loop_color_id", 0)
         
-        for i in range(iterations):
-            if self.stop_event.is_set():
-                break
-            # Execute loop body
-            body_nodes = node.data.get("body_nodes", [])
-            # TODO: implement loop logic
+        if color_id not in self.loop_states:
+            self.loop_states[color_id] = {
+                "count": 0,
+                "start_time": time.time()
+            }
         
+        # Loop start doesn't evaluate condition to jump OUT of loop, 
+        # it just initializes and passes execution inside. 
+        # The loop end evaluates whether to repeat or exit.
         return {"success": True}
-    
+        
+    def _execute_loop_end(self, node) -> Dict[str, Any]:
+        """Execute loop end node"""
+        color_id = node.data.get("loop_color_id", 0)
+        
+        # Find matching loop_start node to check conditions
+        start_node = next((n for n in self.macro.nodes.values() 
+                           if n.type == "loop_start" and n.data.get("loop_color_id", 0) == color_id), None)
+                           
+        if not start_node:
+            return {"success": False, "error": "Missing corresponding Loop Start node for this color"}
+            
+        state = self.loop_states.get(color_id, {"count": 0, "start_time": time.time()})
+        state["count"] += 1
+        
+        loop_type = start_node.data.get("loop_type", "fixed_count")
+        should_continue = False
+        
+        if loop_type == "fixed_count":
+            iterations = int(start_node.data.get("iterations", 1))
+            should_continue = state["count"] < iterations
+        elif loop_type == "while_true":
+            should_continue = True
+        elif loop_type == "until_time":
+            stop_time_str = start_node.data.get("stop_time", "00:00")
+            try:
+                now = datetime.now()
+                stop_h, stop_m = map(int, stop_time_str.split(":"))
+                stop_time = now.replace(hour=stop_h, minute=stop_m, second=0, microsecond=0)
+                # If stop time is earlier today, assume it meant tomorrow
+                if stop_time < now:
+                    stop_time = stop_time.replace(day=stop_time.day + 1)
+                should_continue = now < stop_time
+            except:
+                should_continue = False # invalid time format, exit loop
+        elif loop_type == "until_color":
+            # Check if pixel has matched the color, if so, exit. Otherwise continue.
+            px = int(start_node.data.get("pixel_x", 0))
+            py = int(start_node.data.get("pixel_y", 0))
+            phex = start_node.data.get("pixel_hex", "#000000")
+            matched = self._check_pixel_color(px, py, phex)
+            should_continue = not matched
+            
+        if should_continue:
+            # Branch back to the node following loop_start (loop body)
+            # Default branch from start_node is the loop body
+            next_nodes = self.macro.get_next_nodes(start_node.id)
+            if next_nodes:
+                return {"success": True, "branch_to": next_nodes[0]}
+            else:
+                return {"success": True} # Nowhere to branch to
+        else:
+            # Loop satisfied, clear state and exit out of loop_end output
+            if color_id in self.loop_states:
+                del self.loop_states[color_id]
+            # Will automatically flow to the next node connected to this loop_end
+            return {"success": True}
+            
     def _execute_condition(self, node) -> Dict[str, Any]:
         """Execute condition branching"""
         condition = node.data.get("condition", {})
@@ -260,7 +347,7 @@ class MacroExecutor:
     
     def _get_loop_nodes(self) -> List[str]:
         """Get IDs of all loop nodes"""
-        return [n_id for n_id, n in self.macro.nodes.items() if n.type == "loop"]
+        return [n_id for n_id, n in self.macro.nodes.items() if n.type in ("loop_start", "loop_end")]
     
     def _key_to_keycode(self, key: str) -> int:
         """Convert key name to Android keycode"""

@@ -484,9 +484,9 @@ def connect_device(serial: str, display_id: int = 0):
     _kill_stale_scrcpy_server(serial)
     time.sleep(0.3)
 
-    # Discover available displays if first connection
-    if state["serial"] != serial:
-        state["available_displays"] = get_available_displays(serial)
+    # Always refresh available displays because new displays (emulator windows) 
+    # could have been created since the last connection.
+    state["available_displays"] = get_available_displays(serial)
 
     valid_ids = {d["id"] for d in state["available_displays"]}
     if display_id not in valid_ids:
@@ -890,6 +890,15 @@ def update_macro(macro_id):
         
         MacroStorage.save(macro)
         return jsonify({"ok": True, "macro": macro.to_dict()})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/macros/<macro_id>", methods=["DELETE"])
+def delete_macro(macro_id):
+    """Delete a macro"""
+    try:
+        MacroStorage.delete(macro_id)
+        return jsonify({"ok": True})
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 

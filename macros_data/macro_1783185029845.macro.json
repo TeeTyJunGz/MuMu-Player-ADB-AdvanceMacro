@@ -1,0 +1,303 @@
+{
+  "id": "macro_1783185029845",
+  "name": "EXP F",
+  "description": "Recorded",
+  "created_at": "2026-07-05T00:10:29.845279",
+  "modified_at": "2026-07-05T00:10:29.845279",
+  "nodes": [
+    {
+      "id": "tap_1783184992142",
+      "type": "tap",
+      "name": "Tap Play! (Home)",
+      "conditions": [],
+      "duration_ms": 151,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 100,
+      "rand_predelay_min": 0,
+      "rand_x": 20,
+      "rand_y": 20,
+      "randomize": true,
+      "rotation": 0,
+      "ui_x": 50,
+      "ui_y": 50,
+      "x": 924,
+      "y": 638
+    },
+    {
+      "id": "delay_1783184996581",
+      "type": "delay",
+      "name": "Wait 2000ms",
+      "delay_ms": 2000,
+      "rotation": 0,
+      "ui_x": 230,
+      "ui_y": 50
+    },
+    {
+      "id": "tap_1783184996681",
+      "type": "tap",
+      "name": "Tap Play! (Shop)",
+      "conditions": [],
+      "duration_ms": 100,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 100,
+      "rand_predelay_min": 0,
+      "rand_x": 20,
+      "rand_y": 20,
+      "randomize": true,
+      "rotation": 0,
+      "ui_x": 410,
+      "ui_y": 50,
+      "x": 875,
+      "y": 643
+    },
+    {
+      "id": "delay_1783185002333",
+      "type": "delay",
+      "name": "Wait 5652ms",
+      "delay_ms": 5652,
+      "rotation": 0,
+      "ui_x": 590,
+      "ui_y": 50
+    },
+    {
+      "id": "tap_1783185002591",
+      "type": "tap",
+      "name": "Tap Booster",
+      "conditions": [],
+      "duration_ms": 258,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 100,
+      "rand_predelay_min": 0,
+      "rand_x": 30,
+      "rand_y": 30,
+      "randomize": true,
+      "rotation": 0,
+      "ui_x": 770,
+      "ui_y": 50,
+      "x": 634,
+      "y": 340
+    },
+    {
+      "id": "delay_1783185016392",
+      "type": "delay",
+      "name": "Wait 13801ms",
+      "delay_ms": 13801,
+      "rotation": 180,
+      "ui_x": 770,
+      "ui_y": 170
+    },
+    {
+      "id": "tap_1783185016513",
+      "type": "tap",
+      "name": "Tap Stop",
+      "conditions": [],
+      "duration_ms": 121,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 250,
+      "rand_predelay_min": 0,
+      "rand_x": 5,
+      "rand_y": 5,
+      "randomize": true,
+      "rotation": 180,
+      "ui_x": 590,
+      "ui_y": 170,
+      "x": 1222,
+      "y": 24
+    },
+    {
+      "id": "delay_1783185017698",
+      "type": "delay",
+      "name": "Wait 1185ms",
+      "delay_ms": 1185,
+      "rotation": 180,
+      "ui_x": 410,
+      "ui_y": 170
+    },
+    {
+      "id": "tap_1783185017834",
+      "type": "tap",
+      "name": "Tap Quit",
+      "conditions": [],
+      "duration_ms": 136,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 250,
+      "rand_predelay_min": 0,
+      "rand_x": 15,
+      "rand_y": 15,
+      "randomize": true,
+      "rotation": 180,
+      "ui_x": 230,
+      "ui_y": 170,
+      "x": 723,
+      "y": 415
+    },
+    {
+      "id": "delay_1783185019031",
+      "type": "delay",
+      "name": "Wait 1197ms",
+      "delay_ms": 1197,
+      "rotation": 180,
+      "ui_x": 50,
+      "ui_y": 170
+    },
+    {
+      "id": "tap_1783185019285",
+      "type": "tap",
+      "name": "Tap Confirm Quit",
+      "conditions": [],
+      "duration_ms": 254,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 250,
+      "rand_predelay_min": 0,
+      "rand_x": 15,
+      "rand_y": 15,
+      "randomize": true,
+      "rotation": 0,
+      "ui_x": 50,
+      "ui_y": 290,
+      "x": 618,
+      "y": 374
+    },
+    {
+      "id": "delay_1783185024719",
+      "type": "delay",
+      "name": "Wait 5434ms",
+      "delay_ms": 5434,
+      "rotation": 0,
+      "ui_x": 230,
+      "ui_y": 290
+    },
+    {
+      "id": "tap_1783185024842",
+      "type": "tap",
+      "name": "Tap OK (Score)",
+      "conditions": [],
+      "duration_ms": 123,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 250,
+      "rand_predelay_min": 0,
+      "rand_x": 20,
+      "rand_y": 20,
+      "randomize": true,
+      "rotation": 0,
+      "ui_x": 410.0000000000001,
+      "ui_y": 293.2051503962197,
+      "x": 476,
+      "y": 615
+    },
+    {
+      "id": "node_1783185050418",
+      "type": "loop_start",
+      "name": "Loop_start",
+      "iterations": 2,
+      "loop_color_id": 0,
+      "loop_type": "while_true",
+      "pixel_hex": "#000000",
+      "pixel_x": 0,
+      "pixel_y": 0,
+      "stop_time": "00:00",
+      "ui_x": -119.55015482549824,
+      "ui_y": 46.955930687454966
+    },
+    {
+      "id": "node_1783185054863",
+      "type": "loop_end",
+      "name": "Loop_end",
+      "loop_color_id": 0,
+      "ui_x": 760.0697135913276,
+      "ui_y": 294.4477709927613
+    },
+    {
+      "id": "node_1783186873439",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 4000,
+      "ui_x": 587.5284727974341,
+      "ui_y": 294.530363708306
+    }
+  ],
+  "connections": [
+    {
+      "from": "tap_1783184992142",
+      "to": "delay_1783184996581",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783184996581",
+      "to": "tap_1783184996681",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783184996681",
+      "to": "delay_1783185002333",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185002333",
+      "to": "tap_1783185002591",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185002591",
+      "to": "delay_1783185016392",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185016392",
+      "to": "tap_1783185016513",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185016513",
+      "to": "delay_1783185017698",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185017698",
+      "to": "tap_1783185017834",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185017834",
+      "to": "delay_1783185019031",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185019031",
+      "to": "tap_1783185019285",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185019285",
+      "to": "delay_1783185024719",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783185024719",
+      "to": "tap_1783185024842",
+      "label": "default"
+    },
+    {
+      "from": "node_1783185050418",
+      "to": "tap_1783184992142",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783185024842",
+      "to": "node_1783186873439",
+      "label": "default"
+    },
+    {
+      "from": "node_1783186873439",
+      "to": "node_1783185054863",
+      "label": "default"
+    }
+  ]
+}

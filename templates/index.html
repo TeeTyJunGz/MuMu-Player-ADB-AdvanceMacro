@@ -239,6 +239,11 @@
     </div>
   </div>
 
+  <div style="border-top: 1px solid var(--border); padding-top: 10px;">
+    <button id="btn-headless" class="secondary" style="width:100%;font-size:11px;">💤 Headless Mode (Save Resources)</button>
+    <div id="headless-status" style="display:none; font-size:10px; color:#f39c12; margin-top:4px; text-align:center;">⚡ Headless — video off, macros still run</div>
+  </div>
+
   {% include 'macro_panel.html' %}
 
   <div style="margin-top: auto; font-size: 11px; color: var(--muted);">
@@ -565,6 +570,32 @@ document.getElementById('connectWindowBtn').onclick=connectWindowMode;
 document.getElementById('navBackBtn').onclick=()=>sendNav('back');
 document.getElementById('navHomeBtn').onclick=()=>sendNav('home');
 document.getElementById('navRecentsBtn').onclick=()=>sendNav('recents');
+
+// Headless mode toggle
+document.getElementById('btn-headless').onclick=async()=>{
+  const d=await(await fetch('/toggle_headless',{method:'POST'})).json();
+  if(d.ok){
+    const hl=d.headless;
+    const btn=document.getElementById('btn-headless');
+    const st=document.getElementById('headless-status');
+    const mirror=document.getElementById('mirror');
+    const placeholder=document.getElementById('placeholder');
+    if(hl){
+      btn.textContent='🔌 Exit Headless Mode';
+      btn.style.background='#f39c12';
+      btn.style.color='#171a21';
+      st.style.display='block';
+      if(mirror)mirror.style.display='none';
+      if(placeholder){placeholder.style.display='block';placeholder.textContent='💤 Headless Mode — video off, macros still run';}
+    }else{
+      btn.textContent='💤 Headless Mode (Save Resources)';
+      btn.style.background='';
+      btn.style.color='';
+      st.style.display='none';
+      if(placeholder)placeholder.textContent='Connect a device to start mirroring';
+    }
+  }
+};
 
 // =============================================
 //  PICK MODES (X/Y pick & Color Eyedropper)

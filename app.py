@@ -9,6 +9,8 @@ import os
 import threading
 import time
 import re
+import signal
+import atexit
 
 # pyrefly: ignore [missing-import]
 import adbutils
@@ -602,14 +604,53 @@ def switch_display():
 @app.route("/status")
 def status():
     return jsonify({
-        "connected": state["client"] is not None or state["window_capture_control"] is not None,
+        "connected": state["client"] is not None or state["window_capture_control"] is not None or state.get("headless"),
         "serial": state["serial"],
         "resolution": state["resolution"],
         "display_id": state["display_id"],
         "available_displays": state["available_displays"],
         "mode": state["mode"],
+        "headless": state.get("headless", False),
         "window_capture_available": WINDOW_CAPTURE_AVAILABLE,
     })
+
+
+@app.route("/toggle_headless", methods=["POST"])
+def toggle_headless():
+    """Toggle headless mode: stop video stream but keep ADB serial for macro execution."""
+    try:
+        going_headless = not state.get("headless", False)
+        
+        if going_headless:
+            # Stop video streaming to save resources
+            if state["client"] is not None:
+                try:
+                    state["client"].stop()
+                except Exception:
+                    pass
+                state["client"] = None
+            stop_window_capture()
+            state["headless"] = True
+            state["mode"] = "headless"
+            with frame_lock:
+                state["frame"] = None
+                state["resolution"] = None
+            print("[headless] Video stream stopped — macro-only mode active")
+        else:
+            # Re-enable video by reconnecting
+            state["headless"] = False
+            serial = state["serial"]
+            if serial:
+                connect_device(serial, display_id=state.get("display_id", 0))
+                for _ in range(50):
+                    if state["resolution"] is not None:
+                        break
+                    time.sleep(0.1)
+            print("[headless] Video stream re-enabled")
+        
+        return jsonify({"ok": True, "headless": state.get("headless", False)})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route("/capture_windows")
@@ -975,5 +1016,42 @@ def get_pixel_color():
         return jsonify({"ok": False, "error": str(e)}), 500
 
 
+def _cleanup():
+    """Forcefully clean up all background threads so the process can exit."""
+    print("\n[shutdown] Cleaning up...")
+    global current_executor
+    # Stop any running macro
+    if current_executor:
+        try:
+            current_executor.stop()
+        except Exception:
+            pass
+        current_executor = None
+    # Stop scrcpy client
+    if state.get("client"):
+        try:
+            state["client"].stop()
+        except Exception:
+            pass
+        state["client"] = None
+    # Stop window capture
+    try:
+        stop_window_capture()
+    except Exception:
+        pass
+    print("[shutdown] Done.")
+
+
+atexit.register(_cleanup)
+
+
+def _signal_handler(sig, frame):
+    """Handle Ctrl+C: clean up and force-exit."""
+    _cleanup()
+    os._exit(0)
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, _signal_handler)
+    signal.signal(signal.SIGTERM, _signal_handler)
     app.run(host="0.0.0.0", port=5000, threaded=True)

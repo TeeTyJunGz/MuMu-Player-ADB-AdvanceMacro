@@ -1,217 +1,324 @@
-# Android Macro GUI — Step 1: Screen Mirror
+# 🎮 MuMu Player ADB — Advanced Macro GUI
 
-Real-time screen mirroring of your MuMu emulator (or any Android device/emulator)
-in a web browser, using the scrcpy protocol over ADB, with click-to-tap already
-wired up as the foundation for macros (step 2).
+> A powerful, browser-based macro automation tool for MuMu Player (and any Android emulator). Real-time screen mirroring, visual node-graph macro editor, one-click recording, loop systems, anti-cheat randomization, and multi-display support — all from a sleek dark-mode web GUI.
 
-**NEW: Multi-Display Support** — Switch between virtual displays on MuMu Player!
+![Main Interface](docs/images/main_interface.png)
 
-## Why this approach
+---
 
-Plain `adb screencap` polling only gets ~3-8 fps because it PNG-encodes a full
-screenshot every time. Instead this uses the same approach real scrcpy uses:
-the device streams an H.264 video feed over the adb connection, which we decode
-client-side and re-stream to the browser as MJPEG. This gets 30-60 fps with low
-latency.
+## ✨ Features
 
-## Multi-Display Support (MuMu Feature)
+| Feature | Description |
+|---|---|
+| **Real-Time Screen Mirror** | 30-60 FPS live mirror of your emulator via scrcpy protocol, streamed to your browser as MJPEG. |
+| **Click-to-Tap** | Click anywhere on the mirrored screen and it sends a real tap to the Android device at the correct coordinates. |
+| **Visual Node Editor** | Blueprint-style drag-and-drop macro editor with Tap, Delay, Wait, Key, Loop, and Condition nodes. |
+| **One-Click Macro Recording** | Hit Record, tap on the screen, and the tool captures every touch with accurate coordinates, timing, and hold durations. |
+| **Loop System** | Color-paired Loop Start / Loop End nodes for fixed iterations, infinite loops, time-based, or pixel-color-based loops. |
+| **Anti-Cheat Randomization** | Built-in "Simulate Human" mode that randomizes tap coordinates, hold duration, and pre-delay to avoid detection. |
+| **Multi-Display Support** | Switch between MuMu's virtual displays (Display 0, 2, 3, etc.) instantly from a dropdown. |
+| **Window Capture Mode** | Bypass ADB video entirely — capture MuMu's render window directly via the Windows Graphics Capture API for ultra-low latency. |
+| **Color Picker / Dropper** | Pick X,Y coordinates and hex colors directly from the live screen for pixel-based conditions. |
+| **Navigation Buttons** | One-click Back, Home, and Recents buttons. |
 
-MuMu Player supports running multiple apps simultaneously on separate virtual displays,
-similar to Android's freeform window mode. This tool now lets you switch between them:
+---
 
-- **Display 0**: Main screen (home)
-- **Display 6, 7, etc.**: Virtual displays for background apps
+## 📋 Requirements
 
-Simply:
-1. Connect to your device
-2. Select a display from the dropdown
-3. Click **Switch Display** to view and control apps on different screens
+| Requirement | Version | Notes |
+|---|---|---|
+| **Python** | 3.10+ | 3.11+ recommended |
+| **MuMu Player** | Any | Or any Android emulator accessible via ADB |
+| **ADB** | Included | `platform-tools/` is bundled in this repo |
+| **OS** | Windows 10/11 | Window Capture mode is Windows-only; ADB mirror works on any OS |
 
-All displays maintain the same 30-60 FPS performance.
+### Python Packages
 
-## Window Capture Mode (fastest, MuMu-on-same-PC only)
+All packages are listed in `requirements.txt`:
 
-If MuMu is running on the **same PC** as this app, you can skip ADB video
-streaming entirely and mirror MuMu's own render window directly using the
-Windows Graphics Capture API. Since it's a direct GPU frame handoff (no
-network hop, no on-device H.264 encode, no client-side decode), it's
-noticeably lower latency and much lighter on CPU than the ADB mirror path.
+| Package | Purpose |
+|---|---|
+| `flask` | Web server and API |
+| `opencv-python` | Frame encoding (MJPEG stream) |
+| `adbutils` | ADB device communication |
+| `scrcpy-client` | Real-time screen streaming protocol |
+| `numpy` | Frame buffer handling |
+| `pywin32` | *(Windows only)* Window enumeration for Window Capture mode |
+| `windows-capture` | *(Windows only)* GPU-accelerated window capture |
 
-In the web GUI, switch the **Mirror source** toggle to **Window Capture
-(fast)**, pick your MuMu window from the list, and click **Connect &
-Capture Window**. You still need a device serial selected/connected (adb is
-used for touch/tap/swipe/nav input — capturing pixels alone gives no way to
-inject touches).
+---
 
-Requires `pywin32` and `windows-capture` (see `requirements.txt`) — Windows
-only. If they're not installed, this mode is simply unavailable and ADB
-mirroring still works as before.
+## 🚀 Installation
 
-**Quirks worth knowing:**
-- MuMu's render window (titled "Android Device") is normally kept
-  minimized/off-screen, and it actually **stops rendering while
-  minimized** — so this mode automatically restores it when you connect.
-  That means the window becomes visible on your desktop (separate from
-  the normal MuMu Player window) while this mode is active. You can
-  alt-tab away from it or move it aside, just don't re-minimize it via
-  the taskbar or the mirrored feed will freeze.
-- The captured window includes MuMu's own tab-bar/toolbar chrome above
-  the actual Android content. The **Crop top (px)** field trims this off
-  (default 40px) — adjust it if the mirrored image includes a sliver of
-  the tab bar, or is missing a sliver of the top of the screen (this can
-  vary a little with Windows display scaling/DPI).
-- Multi-display switching (the dropdown/Switch Display button) is
-  ADB-mode only — window capture always shows whatever MuMu itself is
-  currently displaying in that window.
-
-## Navigation buttons
-
-Back / Home / Recents buttons in the sidebar send the standard Android
-nav keyevents (`input keyevent 4/3/187`) via adb — these work in both
-mirror modes, but note the keyevent goes to whichever display currently
-has Android's focus, which may not always be the display you're
-mirroring in Window Capture mode.
-
-## Setup (conda, Python 3.11 — continuing from your existing env)
-
-You already hit a build error installing `av` via pip. Get it from
-conda-forge instead (prebuilt, no compiling):
+### 1. Clone the repository
 
 ```bash
-conda activate MuMuEMU
-conda install -c conda-forge "av>=9,<11"
-pip install -r requirements.txt --no-deps
-pip install adbutils scrcpy-client flask opencv-python numpy
+git clone https://github.com/TeeTyJunGz/MuMu-Player-ADB-AdvanceMacro.git
+cd MuMu-Player-ADB-AdvanceMacro
 ```
 
-If `pip install -r requirements.txt` alone works cleanly for you (no av
-build errors), you can skip the two lines above and just run:
+### 2. Install Python dependencies
 
+**Option A — pip (simplest):**
 ```bash
 pip install -r requirements.txt
 ```
 
-## Connect MuMu to ADB
+**Option B — conda (if you hit build errors with `av`):**
+```bash
+conda activate MuMuEMU
+conda install -c conda-forge "av>=9,<11"
+pip install -r requirements.txt
+```
 
-MuMu's built-in ADB usually listens on `127.0.0.1:7555` by default
-(check MuMu's settings if different, some versions use other ports).
+### 3. Connect MuMu Player to ADB
+
+MuMu's built-in ADB typically listens on `127.0.0.1:7555` (check MuMu settings → Developer → ADB port if different).
 
 ```bash
 adb connect 127.0.0.1:7555
-adb devices     # confirm it shows up as "device", not "offline"
+adb devices   # Should show "127.0.0.1:7555  device"
 ```
 
-## Run
+> **Tip:** If `adb` is not in your PATH, use the bundled one at `platform-tools/adb.exe`.
+
+### 4. Start the server
 
 ```bash
 python app.py
 ```
 
-Open `http://localhost:5000` in your browser. Click **Refresh device list**,
-pick your MuMu serial (e.g. `127.0.0.1:7555`), and click **Connect & Mirror**.
-Or type the serial directly into the manual box.
+### 5. Open in browser
 
-Clicking anywhere on the mirrored screen sends a real tap to the device at the
-correct scaled coordinates.
+Navigate to **[http://localhost:5000](http://localhost:5000)** in any modern browser (Chrome/Edge/Firefox).
 
-### Switching Displays
+---
 
-Once connected, you'll see a **Display (Virtual Screens)** dropdown in the sidebar
-showing all available displays on the device. Select a display and click
-**Switch Display** to view and interact with apps on that screen.
+## 📖 How to Use
 
-## Notes / troubleshooting
+### 🔌 Connecting to Your Device
 
-- If the video feed stays blank, check the terminal running `server.py` for
-  scrcpy connection errors — usually means adb isn't actually connected to
-  that serial, or MuMu's ADB debugging is off.
-- `max_fps` and `bitrate` are set in `app.py` (`connect_device()`) — lower
-  the bitrate if you're on a slow connection to the emulator.
-- Multiple browser tabs will each pull their own MJPEG stream from the same
-  decoded frame buffer — fine for personal use, not built for many concurrent
-  viewers.
-- **Latency:** `gen_frames()` pushes each frame to the browser the instant
-  it's decoded (event-driven, no polling delay), and `JPEG_QUALITY` in
-  `app.py` (default 70) trades a bit of image quality for smaller/faster
-  frames. Even so, expect roughly 100-300ms of end-to-end lag — most of it
-  is the WiFi ADB round-trip (`192.168.1.x:5555`) plus H.264 encode on the
-  device and decode in Python, not something this app's code controls.
-  If you need lower latency:
-    - Connect over USB instead of WiFi ADB if possible (`adb devices` will
-      show a USB serial instead of an IP:port) — this alone typically cuts
-      the largest chunk of the delay.
-    - Lower the bitrate (e.g. `bitrate=4_000_000`) — less data to
-      encode/decode per frame.
-    - Try `max_fps=30` in `connect_device()` — fewer frames to encode can
-      reduce encoder queueing under CPU pressure.
-- Display enumeration uses `adb shell dumpsys display` — if it fails to find
-  displays, the tool defaults to display 0. Check your device output with
-  `adb shell dumpsys display | grep "HWC display"` to debug.
-- **Important quirk on MuMu:** the HWC/port numbers you see from
-  `adb shell dumpsys SurfaceFlinger --display-id` (e.g. "HWC display 6/7")
-  are **not** the same IDs the scrcpy-server needs. See "Multi-Display
-  Architecture" below for why, and how this tool handles it automatically.
+1. Click **Refresh device list** — the ADB devices dropdown will populate with all connected devices.
+2. Select your device (e.g. `127.0.0.1:7555`).
+3. Click **Connect & Mirror** — the live screen feed will appear in the main panel.
 
-## Multi-Display Architecture
+Alternatively, type the serial directly into the **Manual connect** field (e.g. `127.0.0.1:16384`) and click **adb connect + use**.
 
-**The HWC-vs-logical-display-id quirk:**
+Once connected, **click anywhere** on the mirrored screen to send a real tap to the device.
 
-MuMu's `dumpsys SurfaceFlinger --display-id` reports each virtual screen's
-*HWC (hardware composer) port*, e.g.:
-```
-Display 4619827820427265280 (HWC display 0): port=0 ... displayName="mumuscreen000"
-Display 4619827052952829958 (HWC display 6): port=6 ... displayName="mumuscreen006"
-Display 4619827621058019847 (HWC display 7): port=7 ... displayName="mumuscreen007"
-```
-But the bundled scrcpy-server (v1.20, from the `scrcpy-client` PyPI package)
-targets a display by calling Android's
-`DisplayManager.getDisplay(displayId)`, which uses a completely different,
-independently-assigned **logical display ID** space. On a typical MuMu
-instance the mapping looks like:
+---
 
-| HWC port (what you see) | Android logical display id (what scrcpy needs) |
+### 🖥️ Mirror Source Modes
+
+#### ADB (scrcpy) — Default
+Streams H.264 video from the device over ADB → decodes in Python → re-encodes as MJPEG for the browser. Works over USB or WiFi.
+
+#### Window Capture (Fast) — Windows Only
+Captures MuMu's render window directly via the Windows Graphics Capture API. No network hop, no encode/decode — just a direct GPU frame handoff. Significantly lower latency and CPU usage.
+
+To use:
+1. Switch the **Mirror source** toggle to **Window Capture**.
+2. Click **Refresh windows** to find available MuMu windows.
+3. Select the window (e.g. "Android Device").
+4. Adjust **Crop top (px)** if needed (default 40px trims MuMu's tab bar).
+5. Click **Connect & Capture Window**.
+
+> **Note:** You still need a device serial selected for touch input — window capture only captures pixels; ADB is still used to send taps/swipes.
+
+---
+
+### 📺 Multi-Display Switching
+
+MuMu Player can run multiple apps on separate virtual displays. Once connected:
+
+1. The **Display (Virtual Screens)** dropdown appears automatically in the sidebar.
+2. Select the display you want (e.g. Display 2, Display 3).
+3. Click **Switch Display** — the mirror will switch to that screen within 1-2 seconds.
+
+All displays run at the same 30-60 FPS performance. Touch input automatically targets the correct display.
+
+---
+
+### ⬅️ Navigation Buttons
+
+The sidebar includes three Android navigation buttons:
+
+| Button | Action | Android Keyevent |
+|---|---|---|
+| **← Back** | Go back | `KEYCODE_BACK` (4) |
+| **● Home** | Go to home screen | `KEYCODE_HOME` (3) |
+| **◻ Recents** | Open recent apps | `KEYCODE_APP_SWITCH` (187) |
+
+---
+
+### 🔴 Recording a Macro
+
+1. Click **🔴 Record Macro** in the sidebar.
+2. A floating recording panel appears in the top-right corner.
+3. **Tap on the mirrored screen** — each tap is recorded with:
+   - Exact X,Y coordinates
+   - Hold duration (how long you pressed)
+   - Time delay between taps
+4. Use **+ Add 1s Delay** to insert manual delays.
+5. Click **✓ Finish** to save, or **✕ Cancel** to discard.
+
+The recorded actions are automatically converted into nodes in the visual macro editor, laid out left-to-right with proper spacing.
+
+---
+
+### 🔧 Visual Node Editor
+
+![Node Editor](docs/images/node_editor.png)
+
+After creating or recording a macro, click **Edit** to open the full node editor below the main screen.
+
+#### Node Types
+
+| Node | Description |
 |---|---|
-| 0 | 0 |
-| 6 | 7 |
-| 7 | 8 |
+| **Tap** | Taps the screen at X,Y coordinates with a configurable hold duration. |
+| **Delay** | Waits for a specified number of milliseconds. |
+| **Wait** | Waits for a time duration, or until a specific pixel color appears on screen. |
+| **Key** | Sends text input or Android keycodes to the device. |
+| **Loop Start** | Marks the beginning of a loop. Supports fixed iterations, infinite, time-based, or pixel-color-based conditions. |
+| **Loop End** | Marks the end of a loop. Paired to a Loop Start by color. |
+| **Condition** | Checks if a pixel at X,Y matches an expected color (with tolerance), then branches to a "true" or "false" path. |
 
-Passing the HWC port straight to the old scrcpy-server makes
-`getDisplay()` return null, which crashes the server before it opens its
-video socket — that shows up client-side as `ConnectionError: Failed to
-connect scrcpy-server after 3 seconds`.
+#### Controls
 
-`get_available_displays()` in `app.py` resolves this automatically by
-parsing `adb shell dumpsys display`, correlating each logical display's
-`mDisplayId=` with its `address {port=...}` entry, and using the logical
-id internally while still labeling the UI dropdown with the familiar HWC
-port number. You never need to think about this — just pick "Display 6"
-or "Display 7" from the dropdown as expected.
+| Action | How |
+|---|---|
+| **Add a node** | Drag from the palette (left panel) onto the canvas. |
+| **Connect nodes** | Click a red output port → click a blue input port on another node. |
+| **Select a node** | Click on it. Hold `Ctrl` and click to multi-select. |
+| **Select multiple** | Click and drag on empty canvas to lasso-select. |
+| **Delete nodes** | Select node(s) and press `Delete` or `Backspace`. |
+| **Delete a connection** | Click on the arrow/line between two nodes. |
+| **Zoom** | Scroll wheel. |
+| **Pan** | Middle mouse button drag. |
+| **Rotate node** | Press `R` to rotate a node 90° (changes flow direction). |
+| **Fit to view** | Click **⊞ Fit** in the toolbar. |
+| **Edit properties** | Click a node → edit values in the right-side properties panel → click **Apply Changes**. |
+| **Save** | Click **💾 Save** in the toolbar. |
 
-**Backend (`app.py`):**
-- `get_available_displays(serial)` — Queries `dumpsys display`, maps HWC port -> logical display id
-- `DisplayClient` — subclass of `scrcpy.Client` that patches the server launch command to target a specific logical display id (the upstream library hardcodes `0`)
-- `_kill_stale_scrcpy_server(serial)` — kills any leftover scrcpy-server process on the device before reconnecting (`Client.stop()` doesn't reliably kill the remote process)
-- `connect_device(serial, display_id)` — Connects scrcpy to a specific display
-- `/displays` endpoint — Returns list of `{id, port}` objects (logical id + HWC port) for available displays
-- `/switch_display` endpoint — Switches to a different display without disconnecting
+---
 
-**Frontend (`templates/index.html`):**
-- Display selector dropdown (hidden until connected), labeled by HWC port but submitting the logical id
-- "Switch Display" button for instant display switching
-- Status bar shows current display's HWC port and resolution
+### 🔁 Loop System
 
-**Performance:**
-- All displays stream at 30-60 FPS with 8Mbps bitrate (configurable)
-- Switching displays takes ~1-2 seconds (new connection to target display)
-- Touch input automatically targets the correct display
+The loop system uses a paired **Loop Start** + **Loop End** node architecture:
 
-## What's next (macros)
+1. Drag a **Loop Start** node onto the canvas.
+2. Drag a **Loop End** node onto the canvas.
+3. Assign both the **same color** (e.g. Pink) — this pairs them together.
+4. Connect your nodes in order: `Loop Start → Tap → Delay → Tap → Loop End`.
+5. Configure the loop condition on the Loop Start node:
 
-The `/tap` and `/swipe` endpoints already exist server-side. Step 2 will add:
-- A recorder that captures a sequence of taps/swipes/waits while you interact
-  with the mirror
-- Saving/loading named macros (JSON)
-- A playback loop with configurable repeat count / interval
-- A simple macro editor in the sidebar
-- **Multi-display macros** — record/play macros across multiple displays
+| Loop Type | Description |
+|---|---|
+| **Fixed Count** | Repeats N times (e.g. 5 iterations). |
+| **Infinite** | Runs forever until you press Stop. |
+| **Until Time** | Runs until a specified time (e.g. 21:00). |
+| **Until Color** | Runs until a specific pixel color appears at X,Y on screen. |
 
+You can have **multiple independent loops** by assigning different colors (9 available: Pink, Teal, Orange, Lime, Purple, Cyan, Gold, Rose, Sky).
+
+---
+
+### 🎯 Simulate Human (Anti-Cheat Randomization)
+
+To avoid detection by game anti-cheat systems that look for perfectly repeating tap patterns:
+
+1. Click on a **Tap** node in the node editor.
+2. In the properties panel, check **☑ Simulate Human (Randomize)**.
+3. Configure the randomization bounds:
+
+| Setting | Description | Example |
+|---|---|---|
+| **Pre-Delay Min/Max (ms)** | Random pause *before* the tap executes. Mimics human reaction time. | 0 – 50 ms |
+| **X Variance (+/- px)** | Random offset applied to the X coordinate. Mimics imprecise finger placement. | ± 5 px |
+| **Y Variance (+/- px)** | Random offset applied to the Y coordinate. | ± 3 px |
+| **Hold Min/Max (ms)** | Random hold duration for the tap. Mimics varying press lengths. | 20 – 80 ms |
+
+Every time the node executes (including across loop iterations), it generates a **completely unique** combination of pre-delay, position offset, and hold duration within your specified bounds.
+
+> **Example:** A Tap node at (500, 300) with X±5, Y±3, Pre-Delay 0-50ms, Hold 20-80ms might execute as:
+> - Iteration 1: wait 23ms → tap (503, 298) for 45ms
+> - Iteration 2: wait 8ms → tap (497, 302) for 71ms
+> - Iteration 3: wait 41ms → tap (500, 299) for 33ms
+
+---
+
+### ▶️ Running a Macro
+
+1. Open a macro by clicking **Edit** from the macro list.
+2. Click **▶ Play** — the macro starts executing on the connected device.
+3. The **execution log** at the bottom shows real-time progress:
+   - `✅ Tap (931,649)` — successful tap
+   - `✅ Wait 2442ms` — delay completed
+   - `❌ Timeout` — a wait condition timed out
+4. Click **⏹ Stop** to halt execution immediately (even mid-delay).
+
+---
+
+### 📍 Pick & Dropper Tools
+
+When editing a Tap, Wait, or Condition node, you can pick coordinates and colors directly from the live screen:
+
+- **📍 Pick from screen** — Click this button, then click anywhere on the mirrored screen. The X,Y coordinates are automatically filled into the node's properties.
+- **🎨 Dropper** — Click this button, then click on the mirrored screen. The hex color of the clicked pixel is captured and a color preview swatch is shown.
+
+> **Important:** These tools work by reading the actual pixel data from the live ADB frame buffer — the coordinates and colors are exact device pixels, not browser-scaled values.
+
+---
+
+## 🏗️ Project Structure
+
+```
+MuMuADB/
+├── app.py                  # Flask backend — all API routes, scrcpy client, frame streaming
+├── requirements.txt        # Python dependencies
+├── platform-tools/         # Bundled ADB binaries
+├── templates/
+│   ├── index.html          # Main web GUI (sidebar + mirror + node editor + all JS logic)
+│   ├── macro_panel.html    # Macro list & playback controls (included in index.html)
+│   └── macro_recorder.html # Floating recording panel (included in index.html)
+├── macros/
+│   ├── models.py           # Data models (Macro, MacroNode, Connection, NodeType enums)
+│   ├── storage.py          # JSON file I/O for saving/loading macros
+│   └── executor.py         # Macro execution engine (loop handling, randomization, ADB commands)
+├── macros_data/            # Saved macro JSON files (auto-created)
+└── docs/
+    └── images/             # Screenshots for README
+```
+
+---
+
+## ⚡ Performance Tips
+
+| Tip | Effect |
+|---|---|
+| Use **Window Capture** mode instead of ADB | Significantly lower latency and CPU usage (Windows only, same-PC only). |
+| Connect via **USB** instead of WiFi ADB | Cuts the largest chunk of streaming latency. |
+| Lower `JPEG_QUALITY` in `app.py` | Smaller frames = faster encode/transfer (default 70). |
+| Lower `bitrate` in `connect_device()` | Less data to encode on-device (default 8Mbps). |
+| Set `max_fps=30` | Fewer frames = less CPU pressure on the encoder. |
+
+---
+
+## 🐛 Troubleshooting
+
+| Problem | Solution |
+|---|---|
+| **Video feed stays blank** | Check terminal for scrcpy errors. Make sure `adb devices` shows your device as "device" (not "offline"). |
+| **Device not in dropdown** | Click **Refresh device list**. Run `adb connect 127.0.0.1:7555` manually first. |
+| **Display switching says "not available"** | Restart the Python server. The display list is now refreshed on every switch. |
+| **Stop button doesn't work** | Restart the Python server to pick up the latest `executor.py` changes. |
+| **Window Capture mode unavailable** | Install `pywin32` and `windows-capture` (`pip install pywin32 windows-capture`). Windows only. |
+| **Window Capture feed freezes** | Don't minimize MuMu's "Android Device" window — it stops rendering when minimized. |
+| **Crop top is wrong** | Adjust the **Crop top (px)** field (default 40). This varies with Windows DPI scaling. |
+
+---
+
+## 📄 License
+
+This project is provided as-is for personal use. See repository for details.

@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Android Macro GUI - Screen Mirror</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --accent: #4f8cff;
+    --text: #e6e8ec;
+    --muted: #8b93a3;
+    --border: #262b36;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+    /* Scrollable — main content fills viewport, node editor extends below */
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  #main-content {
+    display: flex;
+    height: 100vh;
+    min-height: 500px;
+  }
+  #sidebar {
+    width: 300px;
+    min-width: 300px;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+  }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 3px; }
+  select, input, button {
+    width: 100%;
+    padding: 7px 10px;
+    background: #1f2430;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 6px;
+    font-size: 13px;
+  }
+  button { background: var(--accent); border: none; cursor: pointer; font-weight: 600; }
+  button:hover { opacity: 0.88; }
+  button.secondary { background: #1f2430; border: 1px solid var(--border); }
+  .navrow { display: flex; gap: 6px; }
+  .navrow button { flex: 1; }
+  .modetabs { display: flex; gap: 6px; }
+  .modetabs button { flex: 1; background: #1f2430; border: 1px solid var(--border); }
+  .modetabs button.active { background: var(--accent); border-color: var(--accent); }
+  #status { font-size: 12px; color: var(--muted); }
+  #status.on { color: #4fdb8c; }
+  #stage {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #05060a;
+    position: relative;
+    overflow: hidden;
+  }
+  #mirror {
+    max-width: 100%;
+    max-height: 100%;
+    border: 1px solid var(--border);
+  }
+  #placeholder { color: var(--muted); font-size: 14px; }
+  /* Pick-mode overlays on mirror */
+  #pick-overlay {
+    display: none;
+    position: absolute; inset: 0;
+    cursor: crosshair;
+    z-index: 10;
+    background: rgba(79,140,255,0.08);
+    border: 2px dashed var(--accent);
+  }
+  #pick-overlay.color { background: rgba(230,126,34,0.1); border-color: #e67e22; }
+
+  /* NODE EDITOR */
+  #node-editor-container {
+    display: none;
+    flex-direction: column;
+    height: 560px;
+    border-top: 2px solid var(--border);
+    background: var(--bg);
+    /* Does NOT flex:1 — just its own natural height below main-content */
+  }
+  #node-editor-toolbar {
+    padding: 6px 12px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+  #node-editor-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  #node-palette {
+    width: 110px;
+    min-width: 110px;
+    border-right: 1px solid var(--border);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: #0a0c10;
+    overflow-y: auto;
+  }
+  #node-graph-canvas {
+    flex: 1;
+    background: radial-gradient(ellipse at center, #0d1117 0%, #080b0f 100%);
+    overflow: hidden;
+    position: relative;
+    cursor: default;
+  }
+  #node-props-panel {
+    width: 220px;
+    min-width: 220px;
+    border-left: 1px solid var(--border);
+    padding: 8px;
+    background: #0a0c10;
+    overflow-y: auto;
+    font-size: 12px;
+  }
+  #node-props-panel label { margin-bottom: 2px; }
+  #node-props-panel input, #node-props-panel select { padding: 4px 6px; font-size: 11px; margin-bottom: 4px; }
+  .prop-group { margin-bottom: 2px; }
+  .pick-btn {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    width: auto !important;
+    display: inline-block !important;
+    margin-left: 4px;
+    background: #2a3040 !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 3px;
+    cursor: pointer;
+    color: var(--muted) !important;
+    vertical-align: middle;
+    font-weight: normal !important;
+  }
+  .pick-btn:hover { background: var(--accent) !important; color: white !important; }
+  #zoom-indicator {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    font-size: 10px;
+    color: var(--muted);
+    background: rgba(0,0,0,0.5);
+    padding: 2px 6px;
+    border-radius: 3px;
+    pointer-events: none;
+  }
+  #sel-info {
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<script src="https://unpkg.com/konva@9.3.1/konva.min.js"></script>
+
+{% include 'macro_recorder.html' %}
+
+<!-- Pick overlay sits on top of the stage area -->
+<div id="pick-overlay" title="Click anywhere on the screen to pick"></div>
+
+<div id="main-content">
+<div id="sidebar">
+  <h1>Android Macro GUI</h1>
+  <div id="status">Not connected</div>
+
+  <div>
+    <label>ADB devices</label>
+    <select id="deviceSelect"></select>
+  </div>
+  <button id="refreshBtn" class="secondary">Refresh device list</button>
+
+  <div>
+    <label>Mirror source</label>
+    <div class="modetabs">
+      <button id="modeAdbBtn" class="active">ADB (scrcpy)</button>
+      <button id="modeWindowBtn">Window Capture</button>
+    </div>
+  </div>
+
+  <div id="adbConnectSection">
+    <button id="connectBtn">Connect &amp; Mirror</button>
+  </div>
+
+  <div id="windowConnectSection" style="display:none;">
+    <label>MuMu window</label>
+    <select id="windowSelect"></select>
+    <div style="height:4px;"></div>
+    <button id="refreshWindowsBtn" class="secondary">Refresh windows</button>
+    <div style="height:6px;"></div>
+    <label>Crop top (px)</label>
+    <input id="cropTopInput" type="number" value="40" min="0" max="300">
+    <div style="height:6px;"></div>
+    <button id="connectWindowBtn">Connect &amp; Capture Window</button>
+  </div>
+
+  <div id="displaySection" style="display:none; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 10px;">
+    <label>Display (Virtual Screens)</label>
+    <select id="displaySelect"></select>
+    <div style="height:4px;"></div>
+    <button id="switchDisplayBtn" class="secondary">Switch Display</button>
+  </div>
+
+  <div style="border-top: 1px solid var(--border); padding-top: 10px;">
+    <label>Manual connect</label>
+    <input id="manualSerial" placeholder="127.0.0.1:7555">
+    <div style="height:6px;"></div>
+    <button id="manualConnectBtn" class="secondary">adb connect + use</button>
+  </div>
+
+  <div style="border-top: 1px solid var(--border); padding-top: 10px;">
+    <label>Navigation</label>
+    <div class="navrow">
+      <button id="navBackBtn" class="secondary">&#8592; Back</button>
+      <button id="navHomeBtn" class="secondary">&#9679; Home</button>
+      <button id="navRecentsBtn" class="secondary">&#9635; Recents</button>
+    </div>
+  </div>
+
+  {% include 'macro_panel.html' %}
+
+  <div style="margin-top: auto; font-size: 11px; color: var(--muted);">
+    Click on the mirrored screen to tap the device.
+  </div>
+</div>
+
+<div id="stage">
+  <div id="placeholder">Connect a device to start mirroring</div>
+  <img id="mirror" style="display:none;">
+</div>
+</div><!-- end main-content -->
+
+<!-- NODE EDITOR: below main-content, page scrolls to reach it -->
+<div id="node-editor-container">
+  <div id="node-editor-toolbar">
+    <h3 style="margin:0; font-size:13px; white-space:nowrap; flex-shrink:0;">
+      🔧 <span id="visual-editor-macro-name" style="color:var(--accent);"></span>
+    </h3>
+    <div id="sel-info">No selection</div>
+    <div style="display:flex; gap:5px; align-items:center; margin-left:auto; flex-wrap:wrap;">
+      <span style="font-size:10px; color:var(--muted);">Drag palette→canvas · Click node · Red dot→Blue dot to connect · Del=delete · Scroll=zoom · Mid-btn=pan · Ctrl+click/drag to multi-select</span>
+      <button id="btn-delete-selected" style="width:auto;padding:3px 10px;font-size:11px;background:#8b2020;border:none;color:white;">🗑 Del Node(s)</button>
+      <button id="btn-zoom-fit" class="secondary" style="width:auto;padding:3px 8px;font-size:11px;">⊞ Fit</button>
+      <button id="btn-save-graph" style="width:auto;padding:3px 12px;font-size:11px;background:#4fdb8c;color:#171a21;border:none;">💾 Save</button>
+      <button id="btn-close-editor" class="secondary" style="width:auto;padding:3px 10px;font-size:11px;">✕</button>
+    </div>
+  </div>
+
+  <div id="node-editor-body">
+    <!-- Palette -->
+    <div id="node-palette">
+      <div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">DRAG</div>
+    </div>
+
+    <!-- Canvas -->
+    <div id="node-graph-canvas">
+      <div id="zoom-indicator">100%</div>
+    </div>
+
+    <!-- Properties -->
+    <div id="node-props-panel">
+      <div id="node-props-hint" style="color:var(--muted);font-size:11px;margin-top:8px;">← Click a node to edit its properties</div>
+      <div id="node-props-form" style="display:none;">
+        <div id="prop-node-type-label" style="font-weight:700;font-size:13px;color:var(--accent);margin-bottom:6px;"></div>
+
+        <label>Name</label>
+        <input id="prop-name" type="text">
+
+        <!-- TAP -->
+        <div class="prop-group" data-types="tap">
+          <label>
+            Tap X <button class="pick-btn" id="btn-pick-xy">📍 Pick from screen</button>
+          </label>
+          <input id="prop-x" type="number">
+          <label>Tap Y</label>
+          <input id="prop-y" type="number">
+          <label>Hold duration (ms)</label>
+          <input id="prop-duration" type="number">
+        </div>
+
+        <!-- DELAY -->
+        <div class="prop-group" data-types="delay">
+          <label>Wait time (ms)</label>
+          <input id="prop-delay-ms" type="number">
+        </div>
+
+        <!-- WAIT -->
+        <div class="prop-group" data-types="wait">
+          <label>Wait type</label>
+          <select id="prop-wait-type">
+            <option value="time">Time only</option>
+            <option value="pixel">Pixel color match</option>
+            <option value="time_or_pixel">Time OR Pixel (first)</option>
+          </select>
+          <label>Max time (ms)</label>
+          <input id="prop-wait-ms" type="number">
+          <label>
+            Pixel X <button class="pick-btn" id="btn-pick-wait-xy">📍 Pick</button>
+          </label>
+          <input id="prop-px" type="number">
+          <label>Pixel Y</label>
+          <input id="prop-py" type="number">
+          <label>
+            Expected color <button class="pick-btn" id="btn-pick-wait-color">🎨 Dropper</button>
+          </label>
+          <div style="display:flex; gap:4px;">
+            <input id="prop-hex-color" type="text" placeholder="#00FF00" style="flex:1;">
+            <div id="prop-hex-preview" style="width:24px; height:24px; border-radius:4px; border:1px solid var(--border); background:#000; flex-shrink:0;"></div>
+          </div>
+          <label>Timeout (ms)</label>
+          <input id="prop-max-wait" type="number">
+        </div>
+
+        <!-- KEY -->
+        <div class="prop-group" data-types="key">
+          <label>Text to type</label>
+          <input id="prop-text-input" type="text">
+          <label>Delay between keys (ms)</label>
+          <input id="prop-key-delay" type="number">
+        </div>
+
+        <!-- LOOP -->
+        <div class="prop-group" data-types="loop">
+          <label>Loop type</label>
+          <select id="prop-loop-type">
+            <option value="fixed_count">Fixed count (N times)</option>
+            <option value="while_true">While true (break cond)</option>
+            <option value="until_color">Until pixel color</option>
+          </select>
+          <label>Iterations</label>
+          <input id="prop-iterations" type="number">
+          <label>Delay between iters (ms)</label>
+          <input id="prop-iter-delay" type="number">
+        </div>
+
+        <!-- CONDITION -->
+        <div class="prop-group" data-types="condition">
+          <label>
+            Check X <button class="pick-btn" id="btn-pick-cond-xy">📍 Pick</button>
+          </label>
+          <input id="prop-cond-x" type="number">
+          <label>Check Y</label>
+          <input id="prop-cond-y" type="number">
+          <label>
+            Expected color <button class="pick-btn" id="btn-pick-cond-color">🎨 Dropper</button>
+          </label>
+          <div style="display:flex; gap:4px;">
+            <input id="prop-cond-hex" type="text" placeholder="#FF0000" style="flex:1;">
+            <div id="prop-cond-preview" style="width:24px; height:24px; border-radius:4px; border:1px solid var(--border); background:#000; flex-shrink:0;"></div>
+          </div>
+          <label>Tolerance %</label>
+          <input id="prop-cond-tol" type="number">
+          <div style="font-size:10px;color:var(--muted);margin:3px 0;">
+            True→ green T port (right-top)<br>False→ red F port (right-bottom)
+          </div>
+        </div>
+
+        <button id="btn-apply-props" style="width:100%;margin-top:4px;background:#4f8cff;border:none;color:white;padding:6px;border-radius:4px;cursor:pointer;font-size:12px;">✓ Apply Changes</button>
+
+        <hr style="border-color:var(--border);margin:8px 0;">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">Connections out:</div>
+        <div id="prop-connections" style="font-size:11px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================
+//  DEVICE / CONNECT / NAV
+// =============================================
+const statusEl   = document.getElementById('status');
+const deviceSelect = document.getElementById('deviceSelect');
+const mirror     = document.getElementById('mirror');
+const placeholder = document.getElementById('placeholder');
+const displaySection = document.getElementById('displaySection');
+const displaySelect  = document.getElementById('displaySelect');
+const windowSelect   = document.getElementById('windowSelect');
+const cropTopInput   = document.getElementById('cropTopInput');
+const modeAdbBtn     = document.getElementById('modeAdbBtn');
+const modeWindowBtn  = document.getElementById('modeWindowBtn');
+const adbConnectSection    = document.getElementById('adbConnectSection');
+const windowConnectSection = document.getElementById('windowConnectSection');
+let deviceResolution = null;
+let mirrorMode = 'adb';
+let displayPortById = {};
+
+async function refreshDevices() {
+  const d = await (await fetch('/devices')).json();
+  deviceSelect.innerHTML = '';
+  if (d.ok) d.devices.forEach(s => { const o = document.createElement('option'); o.value = s; o.textContent = s; deviceSelect.appendChild(o); });
+}
+async function refreshCaptureWindows() {
+  try {
+    const d = await (await fetch('/capture_windows')).json();
+    windowSelect.innerHTML = '';
+    if (d.ok) {
+      d.windows.forEach(w => { const o = document.createElement('option'); o.value = w.hwnd; o.textContent = w.title; windowSelect.appendChild(o); });
+      if (!d.windows.length) { const o = document.createElement('option'); o.textContent = 'No MuMu windows'; windowSelect.appendChild(o); }
+    } else { const o = document.createElement('option'); o.textContent = d.error||'unavailable'; windowSelect.appendChild(o); }
+  } catch(e) {}
+}
+function setMirrorMode(m) {
+  mirrorMode = m;
+  modeAdbBtn.classList.toggle('active', m==='adb');
+  modeWindowBtn.classList.toggle('active', m==='window');
+  adbConnectSection.style.display = m==='adb' ? 'block' : 'none';
+  windowConnectSection.style.display = m==='window' ? 'block' : 'none';
+  if (m==='window') refreshCaptureWindows();
+}
+async function loadDisplays(serial) {
+  try {
+    const d = await (await fetch('/displays',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serial})})).json();
+    if (d.ok && d.displays?.length) {
+      displaySelect.innerHTML=''; displayPortById={};
+      d.displays.forEach(x => { displayPortById[x.id]=x.port; const o=document.createElement('option'); o.value=x.id; o.textContent=`Display ${x.port}`; displaySelect.appendChild(o); });
+      displaySection.style.display='block';
+    } else displaySection.style.display='none';
+  } catch(e){}
+}
+async function connectTo(serial, displayId=0) {
+  statusEl.textContent='Connecting...'; statusEl.className='';
+  const d = await (await fetch('/connect',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serial,display_id:displayId})})).json();
+  if (d.ok) {
+    deviceResolution=d.resolution;
+    (d.available_displays||[]).forEach(x=>{displayPortById[x.id]=x.port;});
+    const port=displayPortById[d.display_id];
+    statusEl.textContent=`Connected: ${serial}${deviceResolution?` (${deviceResolution[0]}×${deviceResolution[1]})`:''}${port!==undefined?` | Disp ${port}`:''}`;
+    statusEl.className='on'; placeholder.style.display='none'; mirror.style.display='block';
+    mirror.src='/video_feed?_='+Date.now(); await loadDisplays(serial);
+  } else statusEl.textContent='Error: '+d.error;
+}
+async function switchDisplay() {
+  if (!displaySelect.value) return;
+  const id=parseInt(displaySelect.value);
+  const d = await (await fetch('/switch_display',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({display_id:id})})).json();
+  if (d.ok) {
+    deviceResolution=d.resolution;
+    const p=displayPortById[d.display_id];
+    statusEl.textContent=`Display ${p!==undefined?p:d.display_id}${deviceResolution?` (${deviceResolution[0]}×${deviceResolution[1]})`:''}`;
+    statusEl.className='on'; mirror.src='/video_feed?_='+Date.now();
+  } else statusEl.textContent='Switch failed: '+d.error;
+}
+async function connectWindowMode() {
+  const serial=deviceSelect.value||document.getElementById('manualSerial').value.trim();
+  const hwnd=windowSelect.value; const cropTop=parseInt(cropTopInput.value)||0;
+  if (!serial){statusEl.textContent='Pick device serial first';return;}
+  if (!hwnd){statusEl.textContent='Pick a window first';return;}
+  statusEl.textContent='Starting window capture...'; statusEl.className='';
+  const d = await (await fetch('/connect_window',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serial,hwnd:parseInt(hwnd),crop_top:cropTop})})).json();
+  if (d.ok) {
+    deviceResolution=d.resolution;
+    statusEl.textContent=`Window: ${windowSelect.options[windowSelect.selectedIndex].textContent}${deviceResolution?` (${deviceResolution[0]}×${deviceResolution[1]})`:''}`;
+    statusEl.className='on'; placeholder.style.display='none'; mirror.style.display='block';
+    mirror.src='/video_feed?_='+Date.now(); displaySection.style.display='none';
+  } else statusEl.textContent='Error: '+d.error;
+}
+async function sendNav(a){ await fetch('/nav',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:a})}); }
+
+document.getElementById('refreshBtn').onclick=refreshDevices;
+document.getElementById('connectBtn').onclick=()=>{const s=deviceSelect.value;if(s)connectTo(s);};
+document.getElementById('switchDisplayBtn').onclick=switchDisplay;
+document.getElementById('manualConnectBtn').onclick=()=>{const s=document.getElementById('manualSerial').value.trim();if(s)connectTo(s);};
+document.getElementById('modeAdbBtn').onclick=()=>setMirrorMode('adb');
+document.getElementById('modeWindowBtn').onclick=()=>setMirrorMode('window');
+document.getElementById('refreshWindowsBtn').onclick=refreshCaptureWindows;
+document.getElementById('connectWindowBtn').onclick=connectWindowMode;
+document.getElementById('navBackBtn').onclick=()=>sendNav('back');
+document.getElementById('navHomeBtn').onclick=()=>sendNav('home');
+document.getElementById('navRecentsBtn').onclick=()=>sendNav('recents');
+
+// =============================================
+//  PICK MODES (X/Y pick & Color Eyedropper)
+// =============================================
+let pickMode = null; // 'xy' | 'color' | null
+let pickTarget = null; // callback(x,y) or callback(hex)
+const pickOverlay = document.getElementById('pick-overlay');
+
+function startPickMode(mode, callback) {
+  pickMode = mode;
+  pickTarget = callback;
+  pickOverlay.className = mode === 'color' ? 'color' : '';
+  pickOverlay.style.display = 'block';
+  pickOverlay.title = mode === 'xy' ? 'Click anywhere to pick coordinates' : 'Click to pick color from screen';
+  // Position overlay exactly over the mirror image
+  const sr = mirror.getBoundingClientRect();
+  pickOverlay.style.top = (sr.top + window.scrollY) + 'px';
+  pickOverlay.style.left = (sr.left + window.scrollX) + 'px';
+  pickOverlay.style.width = sr.width + 'px';
+  pickOverlay.style.height = sr.height + 'px';
+  pickOverlay.style.position = 'absolute';
+}
+
+function endPickMode() {
+  pickMode = null; pickTarget = null;
+  pickOverlay.style.display = 'none';
+}
+
+pickOverlay.addEventListener('click', async (e) => {
+  if (!pickMode || !pickTarget || !deviceResolution) { endPickMode(); return; }
+  const rect = pickOverlay.getBoundingClientRect();
+  // Convert to mirror image coords
+  const mr = mirror.getBoundingClientRect();
+  const rx = (e.clientX - mr.left) / mr.width;
+  const ry = (e.clientY - mr.top) / mr.height;
+  const devX = Math.round(Math.max(0, Math.min(1, rx)) * deviceResolution[0]);
+  const devY = Math.round(Math.max(0, Math.min(1, ry)) * deviceResolution[1]);
+
+  if (pickMode === 'xy') {
+    pickTarget(devX, devY);
+    endPickMode();
+  } else if (pickMode === 'color') {
+    // Use the color-picker endpoint
+    try {
+      const serial = deviceSelect.value || document.getElementById('manualSerial').value.trim();
+      const d = await (await fetch('/api/color-picker', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({x: devX, y: devY, serial})
+      })).json();
+      if (d.ok || d.hex) { pickTarget(d.hex || d.color || '#000000'); }
+      else {
+        // Fallback: sample from img element directly
+        try {
+          const c = document.createElement('canvas');
+          c.width = mirror.naturalWidth; c.height = mirror.naturalHeight;
+          const ctx = c.getContext('2d'); ctx.drawImage(mirror, 0, 0);
+          const px = ctx.getImageData(devX, devY, 1, 1).data;
+          const hex = '#' + [px[0],px[1],px[2]].map(v=>v.toString(16).padStart(2,'0')).join('');
+          pickTarget(hex);
+        } catch { pickTarget('#000000'); }
+      }
+    } catch { endPickMode(); }
+    endPickMode();
+  }
+});
+pickOverlay.addEventListener('keydown', e => { if (e.key === 'Escape') endPickMode(); });
+
+// =============================================
+//  MACRO RECORDING
+// =============================================
+let recordingMode=false, recordingMacro=null, recordingNodes=[];
+let lastTapEndTime = 0;
+let currentTapStartTime = 0;
+let currentTapX = 0;
+let currentTapY = 0;
+let isInteractingWithMirror = false;
+
+mirror.addEventListener('mousedown', (e) => {
+  if (!deviceResolution || pickMode || e.button !== 0) return;
+  e.preventDefault(); // prevent native drag
+  const rect = mirror.getBoundingClientRect();
+  currentTapX = Math.round((e.clientX - rect.left) / rect.width * deviceResolution[0]);
+  currentTapY = Math.round((e.clientY - rect.top) / rect.height * deviceResolution[1]);
+  currentTapStartTime = Date.now();
+  isInteractingWithMirror = true;
+
+  if (recordingMode && lastTapEndTime > 0) {
+    const delayMs = currentTapStartTime - lastTapEndTime;
+    if (delayMs > 20) {
+      const dnode = {id:`delay_${Date.now()}`, type:'delay', name:`Wait ${delayMs}ms`, delay_ms:delayMs};
+      recordingMacro.nodes.push(dnode); recordingNodes.push(dnode); updateActionHistory();
+    }
+  }
+});
+
+document.addEventListener('mouseup', async (e) => {
+  if (!isInteractingWithMirror) return;
+  isInteractingWithMirror = false;
+  if (!deviceResolution || pickMode || e.button !== 0) return;
+
+  const duration = Date.now() - currentTapStartTime;
+  lastTapEndTime = Date.now();
+
+  if (recordingMode) {
+    const node = {id:`tap_${Date.now()}`, type:'tap', name:`Tap (${currentTapX},${currentTapY})`, x:currentTapX, y:currentTapY, duration_ms:duration, conditions:[]};
+    recordingMacro.nodes.push(node); recordingNodes.push(node); updateActionHistory();
+  }
+  
+  // Note: Backend tap currently ignores duration, but it's recorded in the macro graph
+  await fetch('/tap', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({x:currentTapX, y:currentTapY})});
+});
+
+// Draggable recording panel
+const recPanel=document.getElementById('recording-panel');
+const recHeader=document.getElementById('recording-panel-header');
+let isDragRec=false, dRX=0, dRY=0;
+recHeader?.addEventListener('mousedown',e=>{
+  isDragRec=true; const r=recPanel.getBoundingClientRect();
+  dRX=e.clientX-r.left; dRY=e.clientY-r.top; e.preventDefault();
+});
+document.addEventListener('mousemove',e=>{
+  if(!isDragRec)return;
+  recPanel.style.left=(e.clientX-dRX)+'px'; recPanel.style.top=(e.clientY-dRY)+'px'; recPanel.style.right='auto';
+});
+document.addEventListener('mouseup',()=>{isDragRec=false;});
+
+document.getElementById('btn-start-recording')?.addEventListener('click',()=>{
+  const name=prompt('Recording name:','Recorded Macro'); if(!name)return;
+  recordingMode=true; recordingNodes=[]; recordingMacro={name,nodes:[],connections:[]};
+  lastTapEndTime=0; // Reset delay calculation
+  document.getElementById('recording-panel').style.display='block'; updateActionHistory();
+});
+document.getElementById('btn-finish-recording')?.addEventListener('click',async()=>{
+  recordingMode=false;
+  
+  // Auto-layout logic
+  const startX = 50, startY = 50;
+  const spacingX = 180, spacingY = 120;
+  const maxNodesPerRow = 5;
+  let cx = startX, cy = startY;
+  let dir = 1; // 1 for left-to-right, -1 for right-to-left
+  
+  for(let i=0; i<recordingMacro.nodes.length; i++) {
+    const nd = recordingMacro.nodes[i];
+    nd.ui_x = cx;
+    nd.ui_y = cy;
+    nd.rotation = dir === 1 ? 0 : 180;
+    
+    if (i < recordingMacro.nodes.length - 1) {
+      recordingMacro.connections.push({from: nd.id, to: recordingMacro.nodes[i+1].id, label: 'default'});
+      
+      if ((i + 1) % maxNodesPerRow === 0) {
+        cy += spacingY;
+        dir *= -1;
+      } else {
+        cx += dir * spacingX;
+      }
+    }
+  }
+  
+  try {
+    const r1=await (await fetch('/api/macros',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:recordingMacro.name,description:'Recorded'})})).json();
+    if(r1.ok){ await fetch(`/api/macros/${r1.macro.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(recordingMacro)}); loadMacros(); }
+  } catch(e){}
+  document.getElementById('recording-panel').style.display='none';
+});
+document.getElementById('btn-cancel-recording')?.addEventListener('click',()=>{
+  recordingMode=false; document.getElementById('recording-panel').style.display='none';
+});
+document.getElementById('btn-add-delay')?.addEventListener('click',()=>{
+  if(!recordingMode)return;
+  const ms=parseInt(prompt('Delay ms:','1000'))||1000;
+  const node={id:`delay_${Date.now()}`,type:'delay',name:`Wait ${ms}ms`,delay_ms:ms};
+  recordingMacro.nodes.push(node); recordingNodes.push(node); updateActionHistory();
+});
+function updateActionHistory(){
+  const h=document.getElementById('recording-actions'); if(!h)return;
+  h.innerHTML=recordingNodes.map((n,i)=>`<div style="padding:3px;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center;"><span>${i+1}. ${n.name}</span><button onclick="removeRecNode(${i})" style="width:auto;padding:1px 5px;font-size:10px;background:#8b2020;border:none;color:white;border-radius:3px;cursor:pointer;">✕</button></div>`).join('');
+}
+function removeRecNode(i){recordingNodes.splice(i,1);recordingMacro.nodes.splice(i,1);updateActionHistory();}
+
+// =============================================
+//  MACRO LIST
+// =============================================
+async function loadMacros(){
+  try {
+    const d=await(await fetch('/api/macros')).json(); if(!d.ok)return;
+    const list=document.getElementById('macro-list');
+    if(!d.macros.length){list.innerHTML='<div style="padding:8px;color:var(--muted);font-size:11px;">No macros yet. Create or record one!</div>';return;}
+    list.innerHTML=d.macros.map(m=>`
+      <div style="padding:8px;border-bottom:1px solid var(--border);">
+        <strong style="color:var(--accent);">${m.name}</strong>
+        <div style="font-size:11px;color:var(--muted);margin:2px 0;">${m.description||''}</div>
+        <div style="font-size:10px;margin-bottom:5px;color:var(--muted);">Nodes: ${m.node_count}</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;">
+          <button class="secondary" style="font-size:11px;padding:2px 6px;width:auto;" onclick="editMacro('${m.id}')">✏ Edit</button>
+          <button style="font-size:11px;padding:2px 6px;width:auto;background:#4fdb8c;border:none;color:#171a21;" onclick="playMacro('${m.id}')">▶ Play</button>
+          <button style="font-size:11px;padding:2px 6px;width:auto;background:#8b2020;border:none;color:white;" onclick="deleteMacro('${m.id}')">🗑</button>
+        </div>
+      </div>`).join('');
+  } catch(e){}
+}
+async function createMacro(){
+  const name=prompt('Macro name:','New Macro'); if(!name)return;
+  const desc=prompt('Description:','')||'';
+  const d=await(await fetch('/api/macros',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,description:desc})})).json();
+  if(d.ok){loadMacros();editMacro(d.macro.id);}
+}
+async function deleteMacro(id){ await fetch(`/api/macros/${id}`,{method:'DELETE'}); loadMacros(); }
+async function playMacro(macroId){
+  const serial=deviceSelect.value||document.getElementById('manualSerial').value.trim();
+  if(!serial){alert('No device connected');return;}
+  const d=await(await fetch(`/api/macros/${macroId}/play`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({serial})})).json();
+  if(d.ok){
+    const lc=document.getElementById('log-content'); if(lc)lc.innerHTML='<span style="color:#4fdb8c;">Running...</span>';
+    const iv=setInterval(async()=>{
+      const sd=await(await fetch(`/api/macros/${macroId}/status`)).json();
+      if(sd.ok){updateExecLog(sd.log);if(sd.status==='stopped'||sd.status==='idle')clearInterval(iv);}
+    },500);
+  }
+}
+function updateExecLog(entries){
+  const lc=document.getElementById('log-content'); if(!lc)return;
+  lc.innerHTML=(entries||[]).map(e=>`<div style="margin-bottom:2px;"><span style="color:var(--muted);">${new Date(e.timestamp).toLocaleTimeString()}</span> <span style="color:${e.level==='error'?'#e74c3c':'#4fdb8c'};">[${e.level.toUpperCase()}]</span> ${e.message}</div>`).join('');
+  lc.scrollTop=lc.scrollHeight;
+}
+document.getElementById('btn-macro-back')?.addEventListener('click',()=>{
+  document.getElementById('macro-list-container').style.display='block';
+  document.getElementById('macro-editor').style.display='none';
+  document.getElementById('node-editor-container').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+document.getElementById('btn-macro-play')?.addEventListener('click',()=>{if(currentEditMacroId)playMacro(currentEditMacroId);});
+document.getElementById('btn-new-macro')?.addEventListener('click',createMacro);
+
+// =============================================
+//  KONVA NODE EDITOR
+// =============================================
+let stage=null, connLayer=null, nodeLayer=null, selLayer=null;
+let currentEditMacroId=null, currentNodes=[], currentConnections=[];
+let selectedNodeIds=new Set(); // multi-select
+let connectingFrom=null, pendingConnLabel='default';
+
+const NW=140, NH=60, PORT_R=7;
+const NODE_COLORS={tap:'#922b21',wait:'#1a5276',delay:'#935116',key:'#1e6b3e',loop:'#6c3483',condition:'#9a7d0a',ocr:'#154360',screenshot:'#4d5656'};
+const PALETTE_DEFS=[
+  {type:'tap',name:'TAP',desc:'Click X,Y'},
+  {type:'wait',name:'WAIT',desc:'Time/pixel'},
+  {type:'delay',name:'DELAY',desc:'Fixed pause'},
+  {type:'key',name:'KEY',desc:'Type text'},
+  {type:'loop',name:'LOOP',desc:'Repeat N×'},
+  {type:'condition',name:'IF',desc:'Branch pixel'},
+];
+
+function setupPalette(){
+  const pal=document.getElementById('node-palette'); if(!pal)return;
+  pal.innerHTML='<div style="font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">DRAG</div>';
+  PALETTE_DEFS.forEach(def=>{
+    const d=document.createElement('div');
+    d.style.cssText=`background:${NODE_COLORS[def.type]||'#555'};padding:6px 8px;border-radius:5px;cursor:grab;user-select:none;font-size:11px;color:white;font-weight:700;border:1px solid rgba(255,255,255,0.1);`;
+    d.innerHTML=`${def.name}<br><span style="font-size:9px;font-weight:400;opacity:0.7;">${def.desc}</span>`;
+    d.draggable=true;
+    d.addEventListener('dragstart',e=>{e.dataTransfer.setData('nodeType',def.type);e.dataTransfer.effectAllowed='copy';e.stopPropagation();});
+    pal.appendChild(d);
+  });
+}
+
+let lastDropTime=0;
+function setupDrop(){
+  const cv=document.getElementById('node-graph-canvas'); if(!cv)return;
+  cv.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='copy';});
+  cv.addEventListener('drop',e=>{
+    e.preventDefault(); e.stopPropagation();
+    const now=Date.now(); if(now-lastDropTime<200){lastDropTime=now;return;} lastDropTime=now;
+    const t=e.dataTransfer.getData('nodeType'); if(!t||!stage)return;
+    const rect=cv.getBoundingClientRect();
+    // Account for stage zoom and pan
+    const scale=stage.scaleX();
+    const sx=stage.x(), sy=stage.y();
+    const cx=(e.clientX-rect.left-sx)/scale;
+    const cy=(e.clientY-rect.top-sy)/scale;
+    const id='node_'+Date.now();
+    currentNodes.push(makeDefaults(t,id,cx,cy));
+    redraw(); selectNodes([id]);
+  });
+}
+
+function makeDefaults(type,id,x,y){
+  const base={id,type,name:type.charAt(0).toUpperCase()+type.slice(1),ui_x:x,ui_y:y};
+  if(type==='tap') return{...base,x:0,y:0,duration_ms:50,conditions:[]};
+  if(type==='delay') return{...base,delay_ms:1000};
+  if(type==='wait') return{...base,wait_type:'time',time_ms:2000,pixel_condition:null,max_wait_ms:10000};
+  if(type==='key') return{...base,text_input:'',delay_between_keys_ms:50};
+  if(type==='loop') return{...base,loop_type:'fixed_count',iterations:5,delay_between_iterations_ms:500};
+  if(type==='condition') return{...base,condition:{type:'pixel_color',x:0,y:0,hex_color:'#FF0000',tolerance_percent:10},true_branch:null,false_branch:null};
+  return base;
+}
+
+async function editMacro(macroId){
+  try {
+    const d=await(await fetch(`/api/macros/${macroId}`)).json(); if(!d.ok)return;
+    const macro=d.macro;
+    currentEditMacroId=macro.id;
+    currentNodes=macro.nodes||[];
+    currentConnections=macro.connections||[];
+    document.getElementById('macro-name').value=macro.name;
+    document.getElementById('macro-description').value=macro.description||'';
+    document.getElementById('macro-list-container').style.display='none';
+    document.getElementById('macro-editor').style.display='block';
+    const ec=document.getElementById('node-editor-container');
+    ec.style.display='flex';
+    document.getElementById('visual-editor-macro-name').textContent=macro.name;
+    // Scroll to node editor
+    setTimeout(()=>ec.scrollIntoView({behavior:'smooth',block:'start'}),100);
+    initEditor();
+  } catch(e){console.error(e);}
+}
+
+function initEditor(){
+  const cv=document.getElementById('node-graph-canvas'); if(!cv)return;
+  if(stage){stage.destroy();stage=null;}
+  stage=new Konva.Stage({container:'node-graph-canvas',width:cv.offsetWidth,height:cv.offsetHeight});
+  connLayer=new Konva.Layer(); nodeLayer=new Konva.Layer(); selLayer=new Konva.Layer();
+  stage.add(connLayer,nodeLayer,selLayer);
+
+  // Zoom with scroll wheel
+  const zoomEl=document.getElementById('zoom-indicator');
+  stage.on('wheel',e=>{
+    e.evt.preventDefault();
+    const scaleBy=1.1; const old=stage.scaleX();
+    const ptr=stage.getPointerPosition();
+    const mpt={x:(ptr.x-stage.x())/old,y:(ptr.y-stage.y())/old};
+    const dir=e.evt.deltaY<0?1:-1;
+    const ns=Math.min(Math.max(old*(dir>0?scaleBy:1/scaleBy),0.08),8);
+    stage.scale({x:ns,y:ns});
+    stage.position({x:ptr.x-mpt.x*ns,y:ptr.y-mpt.y*ns});
+    stage.batchDraw();
+    if(zoomEl) zoomEl.textContent=Math.round(ns*100)+'%';
+  });
+
+  // Pan with middle mouse
+  let panning=false, panStart=null;
+  stage.on('mousedown',e=>{
+    if(e.evt.button===1){panning=true;panStart={x:e.evt.clientX-stage.x(),y:e.evt.clientY-stage.y()};e.evt.preventDefault();}
+  });
+  stage.on('mousemove',e=>{if(panning){stage.x(e.evt.clientX-panStart.x);stage.y(e.evt.clientY-panStart.y);stage.batchDraw();}});
+  stage.on('mouseup',e=>{if(e.evt.button===1)panning=false;});
+
+  // Lasso select
+  let lassoActive=false, lassoStart=null, lassoRect=null;
+  stage.on('mousedown',e=>{
+    if(e.target===stage&&e.evt.button===0){
+      lassoActive=true;
+      const p=stage.getPointerPosition();
+      const sc=stage.scaleX(), sx=stage.x(), sy=stage.y();
+      lassoStart={x:(p.x-sx)/sc, y:(p.y-sy)/sc};
+      if(!e.evt.ctrlKey&&!e.evt.metaKey){selectedNodeIds.clear();}
+      lassoRect=new Konva.Rect({x:lassoStart.x,y:lassoStart.y,width:0,height:0,fill:'rgba(79,140,255,0.1)',stroke:'#4f8cff',strokeWidth:1/sc,dash:[4/sc,4/sc]});
+      selLayer.add(lassoRect); selLayer.batchDraw();
+      connectingFrom=null;
+    }
+  });
+  stage.on('mousemove',e=>{
+    if(!lassoActive||!lassoRect)return;
+    const p=stage.getPointerPosition(), sc=stage.scaleX(), sx=stage.x(), sy=stage.y();
+    const cx=(p.x-sx)/sc, cy=(p.y-sy)/sc;
+    const x=Math.min(cx,lassoStart.x), y=Math.min(cy,lassoStart.y);
+    const w=Math.abs(cx-lassoStart.x), h=Math.abs(cy-lassoStart.y);
+    lassoRect.setAttrs({x,y,width:w,height:h}); selLayer.batchDraw();
+  });
+  stage.on('mouseup',e=>{
+    if(!lassoActive||!lassoRect){lassoActive=false;return;}
+    const lb=lassoRect.getClientRect({relativeTo:stage});
+    lassoRect.destroy(); lassoRect=null; selLayer.batchDraw();
+    // Find nodes within lasso in stage (screen) coords
+    if(lb.width>5||lb.height>5){
+      const sc=stage.scaleX(), sx=stage.x(), sy=stage.y();
+      currentNodes.forEach(nd=>{
+        const nx=(nd.ui_x||0)*sc+sx, ny=(nd.ui_y||0)*sc+sy;
+        const nw=NW*sc, nh=NH*sc;
+        if(nx<lb.x+lb.width&&nx+nw>lb.x&&ny<lb.y+lb.height&&ny+nh>lb.y)
+          selectedNodeIds.add(nd.id);
+      });
+    }
+    lassoActive=false;
+    redraw(); updateSelInfo();
+    if(selectedNodeIds.size===1) showProps(currentNodes.find(n=>n.id===[...selectedNodeIds][0]));
+    else if(selectedNodeIds.size===0){ document.getElementById('node-props-form').style.display='none'; document.getElementById('node-props-hint').style.display='block'; }
+  });
+
+  // Click on stage background → deselect
+  stage.on('click',e=>{
+    if(e.target===stage){
+      if(!e.evt.ctrlKey&&!e.evt.metaKey){ selectedNodeIds.clear(); connectingFrom=null; }
+      redraw(); updateSelInfo();
+      document.getElementById('node-props-form').style.display='none';
+      document.getElementById('node-props-hint').style.display='block';
+    }
+  });
+
+  // Delete key
+  document.addEventListener('keydown',onKeyDown);
+
+  setupPalette();
+  setupDrop();
+  zoomFit();
+}
+
+function onKeyDown(e){
+  const ec=document.getElementById('node-editor-container');
+  if(!ec||ec.style.display==='none')return;
+  // Only if focus isn't in an input
+  if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
+  if(e.key==='Delete'||e.key==='Backspace'){
+    if(selectedNodeIds.size===0)return;
+    selectedNodeIds.forEach(id=>{
+      currentNodes=currentNodes.filter(n=>n.id!==id);
+      currentConnections=currentConnections.filter(c=>c.from!==id&&c.to!==id);
+    });
+    selectedNodeIds.clear();
+    document.getElementById('node-props-form').style.display='none';
+    document.getElementById('node-props-hint').style.display='block';
+    redraw(); updateSelInfo();
+    e.preventDefault();
+  }
+  if(e.key==='r'||e.key==='R'){
+    if(selectedNodeIds.size===0)return;
+    selectedNodeIds.forEach(id=>{
+      const nd = currentNodes.find(n=>n.id===id);
+      if(nd) nd.rotation = ((nd.rotation||0) + 90) % 360;
+    });
+    redraw();
+    e.preventDefault();
+  }
+  if(e.key==='Escape'){ connectingFrom=null; selectedNodeIds.clear(); redraw(); updateSelInfo(); }
+  if(e.key==='f'||e.key==='F') zoomFit();
+}
+
+function updateSelInfo(){
+  const el=document.getElementById('sel-info');
+  if(!el)return;
+  const n=selectedNodeIds.size;
+  el.textContent=n===0?'No selection':n===1?`Selected: ${currentNodes.find(x=>x.id===[...selectedNodeIds][0])?.name||'node'}`:(`${n} nodes selected`);
+}
+
+function zoomFit(){
+  if(!stage||!currentNodes.length){if(stage){stage.scale({x:1,y:1});stage.position({x:0,y:0});stage.batchDraw();}return;}
+  const cv=document.getElementById('node-graph-canvas');
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  currentNodes.forEach(nd=>{
+    const x=nd.ui_x||0, y=nd.ui_y||0;
+    if(x<minX)minX=x; if(y<minY)minY=y;
+    if(x+NW>maxX)maxX=x+NW; if(y+NH>maxY)maxY=y+NH;
+  });
+  const PAD=60, bw=maxX-minX+PAD*2, bh=maxY-minY+PAD*2;
+  const sc=Math.min(cv.offsetWidth/bw, cv.offsetHeight/bh, 2);
+  stage.scale({x:sc,y:sc});
+  stage.position({x:(cv.offsetWidth-(maxX-minX)*sc)/2-minX*sc, y:(cv.offsetHeight-(maxY-minY)*sc)/2-minY*sc});
+  stage.batchDraw();
+  const zi=document.getElementById('zoom-indicator'); if(zi)zi.textContent=Math.round(sc*100)+'%';
+}
+
+function redraw(){
+  if(!connLayer||!nodeLayer||!selLayer)return;
+  connLayer.destroyChildren(); nodeLayer.destroyChildren();
+  currentConnections.forEach(c=>drawConn(c));
+  currentNodes.forEach(nd=>drawNode(nd));
+  connLayer.batchDraw(); nodeLayer.batchDraw();
+}
+
+function getPortData(nd, isOutput, label) {
+  const rot = nd.rotation || 0;
+  let px = 0, py = NH/2;
+  
+  if (isOutput) {
+    if (nd.type === 'condition') {
+      const offset = label === 'true' ? -13 : 13;
+      if (rot === 0) { px = NW; py = NH/2 + offset; }
+      else if (rot === 90) { px = NW/2 - offset; py = NH; }
+      else if (rot === 180) { px = 0; py = NH/2 - offset; }
+      else if (rot === 270) { px = NW/2 + offset; py = 0; }
+    } else {
+      if (rot === 0) { px = NW; py = NH/2; }
+      else if (rot === 90) { px = NW/2; py = NH; }
+      else if (rot === 180) { px = 0; py = NH/2; }
+      else if (rot === 270) { px = NW/2; py = 0; }
+    }
+  } else { // Input
+    if (rot === 0) { px = 0; py = NH/2; }
+    else if (rot === 90) { px = NW/2; py = 0; }
+    else if (rot === 180) { px = NW; py = NH/2; }
+    else if (rot === 270) { px = NW/2; py = NH; }
+  }
+  
+  let angle = 0;
+  if (isOutput) {
+    if (rot === 0) angle = 0;
+    else if (rot === 90) angle = Math.PI/2;
+    else if (rot === 180) angle = Math.PI;
+    else if (rot === 270) angle = -Math.PI/2;
+  } else {
+    if (rot === 0) angle = Math.PI;
+    else if (rot === 90) angle = -Math.PI/2;
+    else if (rot === 180) angle = 0;
+    else if (rot === 270) angle = Math.PI/2;
+  }
+  return { x: px, y: py, angle };
+}
+
+function drawNode(nd){
+  const x=nd.ui_x||50, y=nd.ui_y||80;
+  const color=NODE_COLORS[nd.type]||'#444';
+  const sel=selectedNodeIds.has(nd.id);
+
+  const g=new Konva.Group({x,y,id:nd.id,draggable:true});
+
+  const box=new Konva.Rect({
+    width:NW,height:NH,fill:color,cornerRadius:6,
+    stroke:sel?'#4f8cff':nd.type==='condition'?'#f1c40f':'rgba(255,255,255,0.12)',
+    strokeWidth:sel?3:1,
+    shadowColor:sel?'#4f8cff':'rgba(0,0,0,0.8)',shadowBlur:sel?20:8,shadowOpacity:1,shadowOffset:{x:1,y:2}
+  });
+
+  const typeLbl=new Konva.Text({text:nd.type.toUpperCase(),x:8,y:5,fontSize:9,fill:'rgba(255,255,255,0.5)',fontStyle:'bold',fontFamily:'monospace'});
+  const nameT=new Konva.Text({text:nd.name||nd.type,x:8,y:18,width:NW-16,fontSize:12,fill:'white',fontStyle:'bold',ellipsis:true,wrap:'none'});
+
+  let sub='';
+  if(nd.type==='tap')sub=`(${nd.x||0}, ${nd.y||0})  hold:${nd.duration_ms||50}ms`;
+  else if(nd.type==='delay')sub=`${nd.delay_ms||0}ms`;
+  else if(nd.type==='wait')sub=`${nd.wait_type||'time'}  max:${nd.time_ms||0}ms`;
+  else if(nd.type==='loop')sub=`${nd.loop_type||'fixed'}  ×${nd.iterations||'?'}`;
+  else if(nd.type==='key')sub=nd.text_input?`"${nd.text_input.substring(0,16)}"`:' (no text)';
+  else if(nd.type==='condition')sub=`pixel (${nd.condition?.x||0},${nd.condition?.y||0})`;
+  const subT=new Konva.Text({text:sub,x:8,y:37,width:NW-16,fontSize:9,fill:'rgba(255,255,255,0.6)',ellipsis:true,wrap:'none'});
+
+  // Input port
+  const inpData = getPortData(nd, false);
+  const inp=new Konva.Circle({x:inpData.x,y:inpData.y,radius:PORT_R,fill:'#0d1117',stroke:'#4f8cff',strokeWidth:2});
+  inp.on('click',e=>{e.cancelBubble=true;receiveConn(nd.id);});
+  inp.on('mouseenter',()=>{inp.fill('#4f8cff');nodeLayer.batchDraw();document.body.style.cursor='crosshair';});
+  inp.on('mouseleave',()=>{inp.fill('#0d1117');nodeLayer.batchDraw();document.body.style.cursor='default';});
+
+  g.add(box,typeLbl,nameT,subT,inp);
+
+  if(nd.type==='condition'){
+    const td = getPortData(nd, true, 'true');
+    const tp=new Konva.Circle({x:td.x,y:td.y,radius:PORT_R,fill:'#0d1117',stroke:'#4fdb8c',strokeWidth:2});
+    const tl=new Konva.Text({text:'T',x:td.x + (Math.cos(td.angle)*8) - 3,y:td.y + (Math.sin(td.angle)*8) - 4,fontSize:9,fill:'#4fdb8c',fontStyle:'bold'});
+    tp.on('click',e=>{e.cancelBubble=true;startConn(nd.id,'true');});
+    tp.on('mouseenter',()=>{tp.fill('#4fdb8c');nodeLayer.batchDraw();document.body.style.cursor='crosshair';});
+    tp.on('mouseleave',()=>{tp.fill('#0d1117');nodeLayer.batchDraw();document.body.style.cursor='default';});
+
+    const fd = getPortData(nd, true, 'false');
+    const fp=new Konva.Circle({x:fd.x,y:fd.y,radius:PORT_R,fill:'#0d1117',stroke:'#e74c3c',strokeWidth:2});
+    const fl=new Konva.Text({text:'F',x:fd.x + (Math.cos(fd.angle)*8) - 3,y:fd.y + (Math.sin(fd.angle)*8) - 4,fontSize:9,fill:'#e74c3c',fontStyle:'bold'});
+    fp.on('click',e=>{e.cancelBubble=true;startConn(nd.id,'false');});
+    fp.on('mouseenter',()=>{fp.fill('#e74c3c');nodeLayer.batchDraw();document.body.style.cursor='crosshair';});
+    fp.on('mouseleave',()=>{fp.fill('#0d1117');nodeLayer.batchDraw();document.body.style.cursor='default';});
+
+    g.add(tp,fp,tl,fl);
+  } else {
+    const od = getPortData(nd, true, 'default');
+    const op=new Konva.Circle({x:od.x,y:od.y,radius:PORT_R,fill:'#0d1117',stroke:'#e74c3c',strokeWidth:2});
+    op.on('click',e=>{e.cancelBubble=true;startConn(nd.id,'default');});
+    op.on('mouseenter',()=>{op.fill('#e74c3c');nodeLayer.batchDraw();document.body.style.cursor='crosshair';});
+    op.on('mouseleave',()=>{op.fill('#0d1117');nodeLayer.batchDraw();document.body.style.cursor='default';});
+    g.add(op);
+  }
+
+  // Click: select
+  g.on('click',e=>{
+    e.cancelBubble=true;
+    if(connectingFrom){receiveConn(nd.id);return;}
+    if(e.evt.ctrlKey||e.evt.metaKey){
+      if(selectedNodeIds.has(nd.id))selectedNodeIds.delete(nd.id);
+      else selectedNodeIds.add(nd.id);
+    } else { selectedNodeIds.clear(); selectedNodeIds.add(nd.id); }
+    redraw(); updateSelInfo();
+    if(selectedNodeIds.size===1) showProps(nd);
+    else { document.getElementById('node-props-form').style.display='none'; document.getElementById('node-props-hint').style.display='block'; }
+  });
+
+  // Drag: update position
+  g.on('dragend',()=>{
+    const n=currentNodes.find(n=>n.id===nd.id);
+    if(n){n.ui_x=g.x();n.ui_y=g.y();}
+    redraw();
+  });
+  // While dragging, redraw connections live
+  g.on('dragmove',()=>{
+    const n=currentNodes.find(n=>n.id===nd.id); if(n){n.ui_x=g.x();n.ui_y=g.y();}
+    connLayer.destroyChildren();
+    currentConnections.forEach(c=>drawConn(c));
+    connLayer.batchDraw();
+  });
+
+  nodeLayer.add(g);
+}
+
+function drawConn(conn){
+  const f=currentNodes.find(n=>n.id===conn.from);
+  const t=currentNodes.find(n=>n.id===conn.to);
+  if(!f||!t)return;
+
+  const fd = getPortData(f, true, conn.label);
+  const td = getPortData(t, false, 'default');
+  
+  const fx = (f.ui_x||50) + fd.x;
+  const fy = (f.ui_y||80) + fd.y;
+  const tx = (t.ui_x||50) + td.x;
+  const ty = (t.ui_y||80) + td.y;
+
+  const col=conn.label==='true'?'#4fdb8c':conn.label==='false'?'#e74c3c':'#7f8fa6';
+
+  // Dynamic Bezier S-curve control points based on port angles
+  const dist = Math.sqrt(Math.pow(tx-fx,2) + Math.pow(ty-fy,2));
+  const cpDist = Math.max(25, dist * 0.45); // much tighter curve for close nodes
+  const cpx1 = fx + Math.cos(fd.angle) * cpDist;
+  const cpy1 = fy + Math.sin(fd.angle) * cpDist;
+  const cpx2 = tx + Math.cos(td.angle) * cpDist;
+  const cpy2 = ty + Math.sin(td.angle) * cpDist;
+
+  // Draw a glowing background stroke first for visibility
+  const glow=new Konva.Path({
+    data:`M${fx},${fy} C${cpx1},${cpy1} ${cpx2},${cpy2} ${tx},${ty}`,
+    stroke: col.replace(/[^,]+\)/, '0.3)').startsWith('#') ? col : col,
+    strokeWidth:8, opacity:0.18, listening:false
+  });
+  connLayer.add(glow);
+
+  const arrow=new Konva.Path({
+    data:`M${fx},${fy} C${cpx1},${cpy1} ${cpx2},${cpy2} ${tx},${ty}`,
+    stroke:col, strokeWidth:2.5, dash:conn.label==='false'?[6,3]:[],
+    listening:false
+  });
+
+  // Arrowhead at end
+  const angle=Math.atan2(ty-cpy2,tx-cpx2);
+  const AL=10, AW=6;
+  const ah=new Konva.Path({
+    data:`M${tx},${ty} L${tx-AL*Math.cos(angle-0.4)},${ty-AL*Math.sin(angle-0.4)} L${tx-AL*Math.cos(angle+0.4)},${ty-AL*Math.sin(angle+0.4)} Z`,
+    fill:col, listening:false
+  });
+
+  // Invisible hit area for clicking to delete
+  const hit=new Konva.Path({
+    data:`M${fx},${fy} C${cpx1},${cpy1} ${cpx2},${cpy2} ${tx},${ty}`,
+    stroke:'transparent', strokeWidth:16, hitStrokeWidth:20
+  });
+  hit.on('click',e=>{
+    e.cancelBubble=true;
+    currentConnections=currentConnections.filter(c=>!(c.from===conn.from&&c.to===conn.to&&c.label===conn.label));
+    redraw(); const nd=currentNodes.find(n=>n.id===conn.from); if(nd&&selectedNodeIds.has(nd.id))showProps(nd);
+  });
+  hit.on('mouseenter',()=>{arrow.stroke('#fff');ah.fill('#fff');connLayer.batchDraw();document.body.style.cursor='pointer';});
+  hit.on('mouseleave',()=>{arrow.stroke(col);ah.fill(col);connLayer.batchDraw();document.body.style.cursor='default';});
+
+  // Label midpoint
+  if(conn.label&&conn.label!=='default'){
+    const t2=0.5;
+    const mx=Math.pow(1-t2,3)*fx+3*Math.pow(1-t2,2)*t2*cpx1+3*(1-t2)*t2*t2*cpx2+t2*t2*t2*tx;
+    const my=Math.pow(1-t2,3)*fy+3*Math.pow(1-t2,2)*t2*cpy1+3*(1-t2)*t2*t2*cpy2+t2*t2*t2*ty;
+    const lblBg=new Konva.Rect({x:mx-16,y:my-8,width:32,height:14,fill:'#0d1117',cornerRadius:3,listening:false});
+    const lbl=new Konva.Text({text:conn.label.toUpperCase(),x:mx-15,y:my-7,fontSize:9,fill:col,fontStyle:'bold',listening:false,align:'center',width:30});
+    connLayer.add(lblBg,lbl);
+  }
+
+  connLayer.add(glow,arrow,ah,hit);
+}
+
+function startConn(fromId,label){
+  connectingFrom=fromId; pendingConnLabel=label;
+  document.body.style.cursor='crosshair';
+  const fn=currentNodes.find(n=>n.id===fromId);
+  flashStatus(`Click another node's blue INPUT port to connect from "${fn?.name}" [${label}]  (Esc to cancel)`);
+}
+
+function receiveConn(toId){
+  if(!connectingFrom||connectingFrom===toId){connectingFrom=null;document.body.style.cursor='default';return;}
+  currentConnections=currentConnections.filter(c=>!(c.from===connectingFrom&&c.label===pendingConnLabel));
+  currentConnections.push({from:connectingFrom,to:toId,label:pendingConnLabel});
+  connectingFrom=null; document.body.style.cursor='default';
+  redraw(); flashStatus('✓ Connection added');
+}
+
+function flashStatus(msg){
+  const prev=statusEl.textContent;
+  statusEl.textContent=msg;
+  setTimeout(()=>{if(statusEl.textContent===msg)statusEl.textContent=prev;},4000);
+}
+
+function selectNodes(ids){
+  selectedNodeIds.clear(); ids.forEach(id=>selectedNodeIds.add(id));
+  redraw(); updateSelInfo();
+  if(ids.length===1){const nd=currentNodes.find(n=>n.id===ids[0]);if(nd)showProps(nd);}
+}
+
+function showProps(nd){
+  if(!nd)return;
+  document.getElementById('node-props-hint').style.display='none';
+  const form=document.getElementById('node-props-form'); form.style.display='block';
+  document.getElementById('prop-node-type-label').textContent=nd.type.toUpperCase()+' Node';
+  document.getElementById('prop-name').value=nd.name||'';
+
+  document.querySelectorAll('.prop-group').forEach(g=>{
+    g.style.display=g.dataset.types.split('|').includes(nd.type)?'block':'none';
+  });
+
+  if(nd.type==='tap'){
+    document.getElementById('prop-x').value=nd.x||0;
+    document.getElementById('prop-y').value=nd.y||0;
+    document.getElementById('prop-duration').value=nd.duration_ms||50;
+  }
+  if(nd.type==='delay') document.getElementById('prop-delay-ms').value=nd.delay_ms||1000;
+  if(nd.type==='wait'){
+    document.getElementById('prop-wait-type').value=nd.wait_type||'time';
+    document.getElementById('prop-wait-ms').value=nd.time_ms||2000;
+    document.getElementById('prop-px').value=nd.pixel_condition?.x||0;
+    document.getElementById('prop-py').value=nd.pixel_condition?.y||0;
+    document.getElementById('prop-hex-color').value=nd.pixel_condition?.hex_color||'#00FF00';
+    document.getElementById('prop-hex-preview').style.backgroundColor=nd.pixel_condition?.hex_color||'#00FF00';
+    document.getElementById('prop-max-wait').value=nd.max_wait_ms||10000;
+  }
+  if(nd.type==='key'){
+    document.getElementById('prop-text-input').value=nd.text_input||'';
+    document.getElementById('prop-key-delay').value=nd.delay_between_keys_ms||50;
+  }
+  if(nd.type==='loop'){
+    document.getElementById('prop-loop-type').value=nd.loop_type||'fixed_count';
+    document.getElementById('prop-iterations').value=nd.iterations||5;
+    document.getElementById('prop-iter-delay').value=nd.delay_between_iterations_ms||500;
+  }
+  if(nd.type==='condition'&&nd.condition){
+    document.getElementById('prop-cond-x').value=nd.condition.x||0;
+    document.getElementById('prop-cond-y').value=nd.condition.y||0;
+    document.getElementById('prop-cond-hex').value=nd.condition.hex_color||'#FF0000';
+    document.getElementById('prop-cond-preview').style.backgroundColor=nd.condition.hex_color||'#FF0000';
+    document.getElementById('prop-cond-tol').value=nd.condition.tolerance_percent||10;
+  }
+
+  // Connections list
+  const conns=currentConnections.filter(c=>c.from===nd.id);
+  document.getElementById('prop-connections').innerHTML=conns.length?conns.map(c=>{
+    const tn=currentNodes.find(n=>n.id===c.to);
+    const col=c.label==='true'?'#4fdb8c':c.label==='false'?'#e74c3c':'#7f8fa6';
+    return `<div style="margin-bottom:3px;display:flex;align-items:center;gap:4px;">
+      <span style="color:${col};font-weight:bold;">[${c.label}]</span>
+      <span style="color:var(--accent);">${tn?.name||c.to}</span>
+      <button onclick="deleteConn('${c.from}','${c.to}','${c.label}')" style="padding:0 4px;font-size:9px;background:#8b2020;border:none;color:white;border-radius:2px;cursor:pointer;width:auto;">✕</button>
+    </div>`;
+  }).join(''):'<span style="color:var(--muted);">None</span>';
+}
+
+function deleteConn(from,to,label){
+  currentConnections=currentConnections.filter(c=>!(c.from===from&&c.to===to&&c.label===label));
+  redraw();
+  const nd=currentNodes.find(n=>n.id===from); if(nd&&selectedNodeIds.has(from))showProps(nd);
+}
+
+// Apply props
+document.getElementById('btn-apply-props')?.addEventListener('click',()=>{
+  const id=[...selectedNodeIds][0]; if(!id)return;
+  const nd=currentNodes.find(n=>n.id===id); if(!nd)return;
+  nd.name=document.getElementById('prop-name').value;
+  if(nd.type==='tap'){nd.x=parseInt(document.getElementById('prop-x').value)||0;nd.y=parseInt(document.getElementById('prop-y').value)||0;nd.duration_ms=parseInt(document.getElementById('prop-duration').value)||50;}
+  if(nd.type==='delay')nd.delay_ms=parseInt(document.getElementById('prop-delay-ms').value)||1000;
+  if(nd.type==='wait'){
+    nd.wait_type=document.getElementById('prop-wait-type').value;
+    nd.time_ms=parseInt(document.getElementById('prop-wait-ms').value)||2000;
+    nd.max_wait_ms=parseInt(document.getElementById('prop-max-wait').value)||10000;
+    const px=parseInt(document.getElementById('prop-px').value)||0;
+    const py=parseInt(document.getElementById('prop-py').value)||0;
+    const hex=document.getElementById('prop-hex-color').value;
+    if(px||py||hex)nd.pixel_condition={x:px,y:py,hex_color:hex||'#00FF00',tolerance_percent:10};
+  }
+  if(nd.type==='key'){nd.text_input=document.getElementById('prop-text-input').value;nd.delay_between_keys_ms=parseInt(document.getElementById('prop-key-delay').value)||50;}
+  if(nd.type==='loop'){nd.loop_type=document.getElementById('prop-loop-type').value;nd.iterations=parseInt(document.getElementById('prop-iterations').value)||5;nd.delay_between_iterations_ms=parseInt(document.getElementById('prop-iter-delay').value)||500;}
+  if(nd.type==='condition'){
+    nd.condition={type:'pixel_color',
+      x:parseInt(document.getElementById('prop-cond-x').value)||0,
+      y:parseInt(document.getElementById('prop-cond-y').value)||0,
+      hex_color:document.getElementById('prop-cond-hex').value||'#FF0000',
+      tolerance_percent:parseInt(document.getElementById('prop-cond-tol').value)||10};
+  }
+  redraw(); flashStatus('✓ Node updated');
+});
+
+// Pick X,Y from screen
+document.getElementById('prop-hex-color')?.addEventListener('input', e => {
+  document.getElementById('prop-hex-preview').style.backgroundColor = e.target.value || '#000';
+});
+document.getElementById('prop-cond-hex')?.addEventListener('input', e => {
+  document.getElementById('prop-cond-preview').style.backgroundColor = e.target.value || '#000';
+});
+
+document.getElementById('btn-pick-xy')?.addEventListener('click',()=>{
+  startPickMode('xy',(x,y)=>{
+    document.getElementById('prop-x').value=x;
+    document.getElementById('prop-y').value=y;
+    document.getElementById('btn-apply-props').click();
+  });
+});
+document.getElementById('btn-pick-wait-xy')?.addEventListener('click',()=>{
+  startPickMode('xy',(x,y)=>{
+    document.getElementById('prop-px').value=x;
+    document.getElementById('prop-py').value=y;
+    document.getElementById('btn-apply-props').click();
+  });
+});
+document.getElementById('btn-pick-cond-xy')?.addEventListener('click',()=>{
+  startPickMode('xy',(x,y)=>{
+    document.getElementById('prop-cond-x').value=x;
+    document.getElementById('prop-cond-y').value=y;
+    document.getElementById('btn-apply-props').click();
+  });
+});
+document.getElementById('btn-pick-wait-color')?.addEventListener('click',()=>{
+  startPickMode('color',(hex)=>{
+    document.getElementById('prop-hex-color').value=hex;
+    document.getElementById('prop-hex-preview').style.backgroundColor=hex;
+  });
+});
+document.getElementById('btn-pick-cond-color')?.addEventListener('click',()=>{
+  startPickMode('color',(hex)=>{
+    document.getElementById('prop-cond-hex').value=hex;
+    document.getElementById('prop-cond-preview').style.backgroundColor=hex;
+  });
+});
+
+// Delete selected nodes button
+document.getElementById('btn-delete-selected')?.addEventListener('click',()=>{
+  if(selectedNodeIds.size===0){flashStatus('Select node(s) first');return;}
+  selectedNodeIds.forEach(id=>{
+    currentNodes=currentNodes.filter(n=>n.id!==id);
+    currentConnections=currentConnections.filter(c=>c.from!==id&&c.to!==id);
+  });
+  selectedNodeIds.clear();
+  document.getElementById('node-props-form').style.display='none';
+  document.getElementById('node-props-hint').style.display='block';
+  redraw(); updateSelInfo();
+});
+
+// Zoom fit
+document.getElementById('btn-zoom-fit')?.addEventListener('click',zoomFit);
+
+// Save
+document.getElementById('btn-save-graph')?.addEventListener('click',async()=>{
+  if(!currentEditMacroId)return;
+  const name=document.getElementById('macro-name').value;
+  const desc=document.getElementById('macro-description').value;
+  try {
+    const d=await(await fetch(`/api/macros/${currentEditMacroId}`,{
+      method:'PUT',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,description:desc,nodes:currentNodes,connections:currentConnections})
+    })).json();
+    if(d.ok){flashStatus('✓ Macro saved!');loadMacros();}
+    else flashStatus('Save failed: '+JSON.stringify(d));
+  } catch(e){console.error(e);}
+});
+document.getElementById('btn-close-editor')?.addEventListener('click',()=>{
+  document.getElementById('node-editor-container').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+document.getElementById('btn-save-macro')?.addEventListener('click',()=>document.getElementById('btn-save-graph')?.click());
+
+// Init
+loadMacros();
+refreshDevices();
+</script>
+</body>
+</html>

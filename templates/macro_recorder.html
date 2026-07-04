@@ -1,0 +1,23 @@
+<div id="recording-panel" style="display: none; position: fixed; top: 20px; right: 20px; background: var(--panel); border: 2px solid #e74c3c; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.5); width: 250px;">
+  <!-- Drag Handle -->
+  <div id="recording-panel-header" style="background: #e74c3c; padding: 6px 12px; cursor: move; border-top-left-radius: 4px; border-top-right-radius: 4px; display: flex; align-items: center; justify-content: space-between;">
+    <h3 style="margin:0; color: white; font-size: 14px;">🔴 Recording Macro</h3>
+  </div>
+  
+  <div style="padding: 12px;">
+    <p style="font-size: 12px; color: var(--muted); margin-top: 0;">Tap on the screen to record coordinates</p>
+  
+  <div id="recording-actions" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); padding: 4px; margin-bottom: 12px; font-size: 11px;">
+    <!-- Actions will be added here -->
+  </div>
+  
+  <div style="display:flex; flex-direction:column; gap: 6px;">
+    <button id="btn-add-delay" class="secondary" style="font-size:11px; padding:4px;">+ Add 1s Delay</button>
+    <!-- Wait / Key omitted for simplicity in this phase -->
+    <div style="display:flex; gap: 6px; margin-top: 8px;">
+      <button id="btn-finish-recording" style="flex:1;">✓ Finish</button>
+      <button id="btn-cancel-recording" class="secondary" style="flex:1;">✕ Cancel</button>
+    </div>
+  </div>
+  </div> <!-- Close padding div -->
+</div>

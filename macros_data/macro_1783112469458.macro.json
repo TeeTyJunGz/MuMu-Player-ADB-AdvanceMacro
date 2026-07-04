@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "id": "macro_1783112469458",
+  "name": "Test",
+  "description": "desc",
+  "created_at": "2026-07-04T04:01:09.459020",
+  "modified_at": "2026-07-04T04:01:09.459046",
+  "nodes": [
+    {
+      "id": "n1",
+      "type": "tap",
+      "name": "Tap",
+      "x": 100,
+      "y": 200
+    },
+    {
+      "id": "n2",
+      "type": "delay",
+      "name": "Wait",
+      "delay_ms": 100
+    }
+  ],
+  "connections": [
+    {
+      "from": "n1",
+      "to": "n2",
+      "label": "default"
+    }
+  ]
+}

@@ -1,0 +1,170 @@
+{
+  "id": "macro_1783121662280",
+  "name": "New",
+  "description": "Recorded",
+  "created_at": "2026-07-04T06:34:22.280559",
+  "modified_at": "2026-07-04T06:34:22.280559",
+  "nodes": [
+    {
+      "id": "tap_1783121626887",
+      "type": "tap",
+      "name": "Tap (959,640)",
+      "x": 959,
+      "y": 640,
+      "duration_ms": 161,
+      "conditions": []
+    },
+    {
+      "id": "delay_1783121629325",
+      "type": "delay",
+      "name": "Wait 2438ms",
+      "delay_ms": 2438
+    },
+    {
+      "id": "tap_1783121629488",
+      "type": "tap",
+      "name": "Tap (887,606)",
+      "x": 887,
+      "y": 606,
+      "duration_ms": 163,
+      "conditions": []
+    },
+    {
+      "id": "delay_1783121634969",
+      "type": "delay",
+      "name": "Wait 5481ms",
+      "delay_ms": 5481
+    },
+    {
+      "id": "tap_1783121635083",
+      "type": "tap",
+      "name": "Tap (630,355)",
+      "x": 630,
+      "y": 355,
+      "duration_ms": 114,
+      "conditions": []
+    },
+    {
+      "id": "delay_1783121651699",
+      "type": "delay",
+      "name": "Wait 16616ms",
+      "delay_ms": 16616
+    },
+    {
+      "id": "tap_1783121651788",
+      "type": "tap",
+      "name": "Tap (1183,37)",
+      "x": 1183,
+      "y": 37,
+      "duration_ms": 89,
+      "conditions": []
+    },
+    {
+      "id": "delay_1783121652952",
+      "type": "delay",
+      "name": "Wait 1164ms",
+      "delay_ms": 1164
+    },
+    {
+      "id": "tap_1783121653108",
+      "type": "tap",
+      "name": "Tap (602,405)",
+      "x": 602,
+      "y": 405,
+      "duration_ms": 156,
+      "conditions": []
+    },
+    {
+      "id": "delay_1783121655043",
+      "type": "delay",
+      "name": "Wait 1935ms",
+      "delay_ms": 1935
+    },
+    {
+      "id": "tap_1783121655161",
+      "type": "tap",
+      "name": "Tap (603,370)",
+      "x": 603,
+      "y": 370,
+      "duration_ms": 118,
+      "conditions": []
+    },
+    {
+      "id": "delay_1783121658615",
+      "type": "delay",
+      "name": "Wait 3454ms",
+      "delay_ms": 3454
+    },
+    {
+      "id": "tap_1783121658701",
+      "type": "tap",
+      "name": "Tap (443,623)",
+      "x": 443,
+      "y": 623,
+      "duration_ms": 86,
+      "conditions": []
+    }
+  ],
+  "connections": [
+    {
+      "from": "tap_1783121626887",
+      "to": "delay_1783121629325",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783121629325",
+      "to": "tap_1783121629488",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783121629488",
+      "to": "delay_1783121634969",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783121634969",
+      "to": "tap_1783121635083",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783121635083",
+      "to": "delay_1783121651699",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783121651699",
+      "to": "tap_1783121651788",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783121651788",
+      "to": "delay_1783121652952",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783121652952",
+      "to": "tap_1783121653108",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783121653108",
+      "to": "delay_1783121655043",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783121655043",
+      "to": "tap_1783121655161",
+      "label": "default"
+    },
+    {
+      "from": "tap_1783121655161",
+      "to": "delay_1783121658615",
+      "label": "default"
+    },
+    {
+      "from": "delay_1783121658615",
+      "to": "tap_1783121658701",
+      "label": "default"
+    }
+  ]
+}

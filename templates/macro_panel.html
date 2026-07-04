@@ -1,0 +1,33 @@
+<div id="macro-panel" style="margin-top: 12px; border-top: 1px solid var(--border); padding-top: 12px;">
+  <!-- Macro list -->
+  <div id="macro-list-container">
+    <h3>Macros</h3>
+    <button id="btn-new-macro" class="secondary">+ New Macro</button>
+    <button id="btn-start-recording" style="margin-top: 4px; background: #e74c3c;">🔴 Record Macro</button>
+    <div id="macro-list" style="border: 1px solid var(--border); height: 200px; overflow-y: auto; margin-top: 8px; border-radius: 4px;"></div>
+  </div>
+  
+  <!-- Macro editor -->
+  <div id="macro-editor" style="display: none; margin-top: 12px;">
+    <h3>Edit Macro</h3>
+    <input type="text" id="macro-name" placeholder="Macro name">
+    <textarea id="macro-description" placeholder="Description" style="width:100%; margin-top:4px; padding:4px; border-radius:4px; border:1px solid var(--border); background:#1f2430; color:var(--text);"></textarea>
+    
+    <div style="margin-top: 8px;">
+      <button id="btn-save-macro" style="background: #4fdb8c; color: #171a21;">Save Changes</button>
+    </div>
+    
+    <!-- Playback controls -->
+    <div style="margin-top: 8px; display:flex; gap: 4px;">
+      <button id="btn-macro-play" style="flex:1;">▶ Play</button>
+      <button id="btn-macro-pause" class="secondary" style="flex:1; display:none;">⏸ Pause</button>
+      <button id="btn-macro-stop" class="secondary" style="flex:1;">⏹ Stop</button>
+      <button id="btn-macro-back" class="secondary" style="flex:1;">Back</button>
+    </div>
+    
+    <!-- Execution log -->
+    <div id="macro-log" style="border: 1px solid var(--border); height: 150px; overflow-y: auto; margin-top: 8px; border-radius: 4px; font-size: 11px; padding: 4px; background: #0f1115;">
+      <pre id="log-content" style="margin:0;"></pre>
+    </div>
+  </div>
+</div>

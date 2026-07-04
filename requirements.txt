@@ -1,0 +1,7 @@
+flask
+opencv-python
+adbutils
+scrcpy-client
+numpy
+pywin32; sys_platform == "win32"
+windows-capture; sys_platform == "win32"

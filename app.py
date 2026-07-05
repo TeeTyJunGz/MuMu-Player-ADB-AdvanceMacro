@@ -954,6 +954,41 @@ def delete_macro(macro_id):
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+@app.route("/api/macros/<macro_id>/duplicate", methods=["POST"])
+def duplicate_macro(macro_id):
+    """Duplicate a macro"""
+    try:
+        macro = MacroStorage.load(macro_id)
+        if not macro:
+            return jsonify({"ok": False, "error": "Macro not found"}), 404
+        
+        import copy, random
+        new_macro = copy.deepcopy(macro)
+        new_macro.id = f"macro_{int(time.time() * 1000)}_{random.randint(1000, 9999)}"
+        new_macro.name = f"{macro.name} (Copy)"
+        MacroStorage.save(new_macro)
+        
+        # Also append to the saved order if it exists
+        order_path = os.path.join("macros_data", "macro_order.json")
+        if os.path.exists(order_path):
+            try:
+                import json
+                with open(order_path, 'r') as f:
+                    order = json.load(f)
+                if macro_id in order:
+                    idx = order.index(macro_id)
+                    order.insert(idx + 1, new_macro.id)
+                else:
+                    order.append(new_macro.id)
+                with open(order_path, 'w') as f:
+                    json.dump(order, f)
+            except:
+                pass
+                
+        return jsonify({"ok": True, "macro": new_macro.to_dict()})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/macros/<macro_id>/play", methods=["POST"])
 def play_macro(macro_id):
     """Start macro playback"""

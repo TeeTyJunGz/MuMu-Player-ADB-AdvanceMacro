@@ -836,6 +836,7 @@ document.getElementById('macro-list')?.addEventListener('contextmenu', e=>{
   ctxMenu.style.left=e.clientX+'px'; ctxMenu.style.top=e.clientY+'px';
   ctxMenu.innerHTML=`
     <div class="ctx-item" data-action="rename" style="padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text);">✏️ Rename</div>
+    <div class="ctx-item" data-action="duplicate" style="padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text);">📄 Duplicate</div>
     <div style="border-top:1px solid var(--border);margin:2px 0;"></div>
     <div class="ctx-item" data-action="delete" style="padding:6px 14px;cursor:pointer;font-size:12px;color:#e74c3c;">🗑 Delete</div>`;
   document.body.appendChild(ctxMenu);
@@ -848,7 +849,10 @@ document.getElementById('macro-list')?.addEventListener('contextmenu', e=>{
         const newName=prompt('Rename macro:',name); if(!newName)return;
         await fetch(`/api/macros/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName})});
         loadMacros();
-      }else if(item.dataset.action==='delete'){
+      } else if(item.dataset.action==='duplicate'){
+        await fetch(`/api/macros/${id}/duplicate`,{method:'POST'});
+        loadMacros();
+      } else if(item.dataset.action==='delete'){
         if(confirm(`Delete "${name}"?`)){deleteMacro(id);}
       }
     });
@@ -1027,7 +1031,7 @@ function initEditor(){
       const p=stage.getPointerPosition();
       const sc=stage.scaleX(), sx=stage.x(), sy=stage.y();
       lassoStart={x:(p.x-sx)/sc, y:(p.y-sy)/sc};
-      if(!e.evt.ctrlKey&&!e.evt.metaKey){selectedNodeIds.clear();}
+      if(!e.evt.shiftKey&&!e.evt.metaKey){selectedNodeIds.clear();}
       lassoRect=new Konva.Rect({x:lassoStart.x,y:lassoStart.y,width:0,height:0,fill:'rgba(79,140,255,0.1)',stroke:'#4f8cff',strokeWidth:1/sc,dash:[4/sc,4/sc]});
       selLayer.add(lassoRect); selLayer.batchDraw();
       connectingFrom=null;
@@ -1043,15 +1047,13 @@ function initEditor(){
   });
   stage.on('mouseup',e=>{
     if(!lassoActive||!lassoRect){lassoActive=false;return;}
-    const lb=lassoRect.getClientRect({relativeTo:stage});
+    const lr = { x: lassoRect.x(), y: lassoRect.y(), w: lassoRect.width(), h: lassoRect.height() };
     lassoRect.destroy(); lassoRect=null; selLayer.batchDraw();
-    // Find nodes within lasso in stage (screen) coords
-    if(lb.width>5||lb.height>5){
-      const sc=stage.scaleX(), sx=stage.x(), sy=stage.y();
+    // Find nodes within lasso in logical coords
+    if(lr.w>5||lr.h>5){
       currentNodes.forEach(nd=>{
-        const nx=(nd.ui_x||0)*sc+sx, ny=(nd.ui_y||0)*sc+sy;
-        const nw=NW*sc, nh=NH*sc;
-        if(nx<lb.x+lb.width&&nx+nw>lb.x&&ny<lb.y+lb.height&&ny+nh>lb.y)
+        const nx=nd.ui_x||0, ny=nd.ui_y||0;
+        if(nx < lr.x+lr.w && nx+NW > lr.x && ny < lr.y+lr.h && ny+NH > lr.y)
           selectedNodeIds.add(nd.id);
       });
     }
@@ -1064,7 +1066,7 @@ function initEditor(){
   // Click on stage background → deselect
   stage.on('click',e=>{
     if(e.target===stage){
-      if(!e.evt.ctrlKey&&!e.evt.metaKey){ selectedNodeIds.clear(); connectingFrom=null; }
+      if(!e.evt.shiftKey&&!e.evt.metaKey){ selectedNodeIds.clear(); connectingFrom=null; }
       redraw(); updateSelInfo();
       document.getElementById('node-props-form').style.display='none';
       document.getElementById('node-props-hint').style.display='block';
@@ -1179,6 +1181,7 @@ function getPortData(nd, isOutput, label) {
   }
   return { x: px, y: py, angle };
 }
+let snapLines = [];
 
 function drawNode(nd){
   const x=nd.ui_x||50, y=nd.ui_y||80;
@@ -1252,7 +1255,7 @@ function drawNode(nd){
   g.on('click',e=>{
     e.cancelBubble=true;
     if(connectingFrom){receiveConn(nd.id);return;}
-    if(e.evt.ctrlKey||e.evt.metaKey){
+    if(e.evt.shiftKey||e.evt.metaKey){
       if(selectedNodeIds.has(nd.id))selectedNodeIds.delete(nd.id);
       else selectedNodeIds.add(nd.id);
     } else { selectedNodeIds.clear(); selectedNodeIds.add(nd.id); }
@@ -1261,15 +1264,54 @@ function drawNode(nd){
     else { document.getElementById('node-props-form').style.display='none'; document.getElementById('node-props-hint').style.display='block'; }
   });
 
-  // Drag: update position
-  g.on('dragend',()=>{
-    const n=currentNodes.find(n=>n.id===nd.id);
-    if(n){n.ui_x=g.x();n.ui_y=g.y();}
-    redraw(); scheduleAutoSave();
+  g.on('dragstart', (e) => {
+    if(!selectedNodeIds.has(nd.id)) {
+      if(!e.evt.shiftKey) selectedNodeIds.clear();
+      selectedNodeIds.add(nd.id);
+      redraw(); updateSelInfo();
+    }
+    const bx = g.x(), by = g.y();
+    g.setAttr('dragOffsets', Array.from(selectedNodeIds).map(id=>{
+      const n = currentNodes.find(x=>x.id===id);
+      return { id, dx: (n.ui_x||0) - bx, dy: (n.ui_y||0) - by };
+    }));
   });
-  // While dragging, redraw connections live
+  
+  g.on('dragend',()=>{
+    snapLines.forEach(l=>l.destroy()); snapLines=[]; selLayer.batchDraw();
+    scheduleAutoSave();
+    redraw();
+  });
+  
   g.on('dragmove',()=>{
-    const n=currentNodes.find(n=>n.id===nd.id); if(n){n.ui_x=g.x();n.ui_y=g.y();}
+    let tx = g.x(), ty = g.y();
+    let snapX = null, snapY = null;
+    currentNodes.forEach(n => {
+      if(selectedNodeIds.has(n.id)) return;
+      if(Math.abs((n.ui_x||0) - tx) < 8) { tx = n.ui_x; snapX = tx; }
+      if(Math.abs((n.ui_y||0) - ty) < 8) { ty = n.ui_y; snapY = ty; }
+    });
+    g.position({x:tx, y:ty});
+    
+    snapLines.forEach(l=>l.destroy()); snapLines=[];
+    if(snapX !== null) snapLines.push(new Konva.Line({points:[snapX, -10000, snapX, 10000], stroke:'#00ff00', strokeWidth:1/stage.scaleX(), dash:[4,4]}));
+    if(snapY !== null) snapLines.push(new Konva.Line({points:[-10000, snapY, 10000, snapY], stroke:'#00ff00', strokeWidth:1/stage.scaleX(), dash:[4,4]}));
+    snapLines.forEach(l=>selLayer.add(l)); selLayer.batchDraw();
+
+    const offsets = g.getAttr('dragOffsets')||[];
+    offsets.forEach(off => {
+      const n = currentNodes.find(x=>x.id===off.id);
+      if(n){ n.ui_x = tx + off.dx; n.ui_y = ty + off.dy; }
+    });
+    
+    // Update visuals of other dragging nodes without full redraw
+    nodeLayer.getChildren().forEach(child => {
+      if(child !== g && selectedNodeIds.has(child.id())) {
+        const off = offsets.find(o=>o.id===child.id());
+        if(off) child.position({x: tx + off.dx, y: ty + off.dy});
+      }
+    });
+
     connLayer.destroyChildren();
     currentConnections.forEach(c=>drawConn(c));
     connLayer.batchDraw();
@@ -1505,6 +1547,11 @@ document.getElementById('btn-apply-props')?.addEventListener('click',()=>{
       tolerance_percent:parseInt(document.getElementById('prop-cond-tol').value)||10};
   }
   redraw(); scheduleAutoSave(); flashStatus('✓ Node updated');
+});
+
+// Auto-apply props on any input change
+document.getElementById('node-props-form')?.addEventListener('change', () => {
+  document.getElementById('btn-apply-props').click();
 });
 
 // Pick X,Y from screen

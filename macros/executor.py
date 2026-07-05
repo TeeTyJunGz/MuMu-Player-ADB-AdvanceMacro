@@ -79,6 +79,9 @@ class MacroExecutor:
                 if not node:
                     break
                 
+                # Log when operation starts
+                self._log("info", f"✅ {node.name}")
+                
                 # Execute node
                 result = self._execute_node(node)
                 
@@ -86,9 +89,7 @@ class MacroExecutor:
                     self._log("error", f"❌ {node.name} - stopped")
                     break
                 
-                if result.get("success"):
-                    self._log("info", f"✅ {node.name}")
-                else:
+                if not result.get("success"):
                     err = result.get("error", result.get("reason", "Failed"))
                     self._log("error", f"❌ {node.name} - {err}")
                 

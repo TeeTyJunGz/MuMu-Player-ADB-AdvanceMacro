@@ -27,7 +27,7 @@
 
 | Requirement | Version | Notes |
 |---|---|---|
-| **Python** | 3.10+ | 3.11+ recommended |
+| **Python** | 3.10+ |  |
 | **MuMu Player** | Any | Or any Android emulator accessible via ADB |
 | **ADB** | Included | `platform-tools/` is bundled in this repo |
 | **OS** | Windows 10/11 | Window Capture mode is Windows-only; ADB mirror works on any OS |
@@ -66,21 +66,29 @@ pip install -r requirements.txt
 
 **Option B — conda (if you hit build errors with `av`):**
 ```bash
+conda create -n MuMuEMU python=3.10 -y
 conda activate MuMuEMU
-conda install -c conda-forge "av>=9,<11"
-pip install -r requirements.txt
+conda install -c conda-forge "av>=9,<10" -y
+pip install flask opencv-python adbutils numpy
+pip install scrcpy-client --no-deps
 ```
 
 ### 3. Connect MuMu Player to ADB
 
-MuMu's built-in ADB typically listens on `127.0.0.1:7555` (check MuMu settings → Developer → ADB port if different).
+MuMu's built-in ADB typically listens on `127.0.0.1:5555` (check MuMu settings → Developer → ADB port if different).
 
 ```bash
-adb connect 127.0.0.1:7555
-adb devices   # Should show "127.0.0.1:7555  device"
+adb connect 127.0.0.1:5555
+adb devices   # Should show "127.0.0.1:5555  device" or "emulator-****"
 ```
 
-> **Tip:** If `adb` is not in your PATH, use the bundled one at `platform-tools/adb.exe`.
+**If ADB from MuMuPlayer not found:**
+```bash
+adb kill-server
+adb devices   # Should show "127.0.0.1:5555  device" or "emulator-****"
+```
+
+> **Tip:** If `adb` is not in your PATH, use the bundled one at `platform-tools/adb.exe` like this `.\adb.exe` instead of `adb`.
 
 ### 4. Start the server
 
@@ -99,7 +107,7 @@ Navigate to **[http://localhost:5000](http://localhost:5000)** in any modern bro
 ### 🔌 Connecting to Your Device
 
 1. Click **Refresh device list** — the ADB devices dropdown will populate with all connected devices.
-2. Select your device (e.g. `127.0.0.1:7555`).
+2. Select your device (e.g. `127.0.0.1:7555` or `emulator-****`).
 3. Click **Connect & Mirror** — the live screen feed will appear in the main panel.
 
 Alternatively, type the serial directly into the **Manual connect** field (e.g. `127.0.0.1:16384`) and click **adb connect + use**.
@@ -136,6 +144,7 @@ MuMu Player can run multiple apps on separate virtual displays. Once connected:
 3. Click **Switch Display** — the mirror will switch to that screen within 1-2 seconds.
 
 All displays run at the same 30-60 FPS performance. Touch input automatically targets the correct display.
+**YOUR MuMuPlayer NEED TO OPEN THE SAME DISPLAY THAT YOU WANTS TO USE MACRO**
 
 ---
 

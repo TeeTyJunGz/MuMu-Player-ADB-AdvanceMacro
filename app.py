@@ -1030,6 +1030,28 @@ def stop_macro(macro_id):
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+@app.route("/api/macros/<macro_id>/pause", methods=["POST"])
+def pause_macro(macro_id):
+    """Pause macro playback"""
+    global current_executor
+    try:
+        if current_executor and current_executor.state == "running":
+            current_executor.pause()
+        return jsonify({"ok": True, "status": "paused"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/macros/<macro_id>/resume", methods=["POST"])
+def resume_macro(macro_id):
+    """Resume macro playback"""
+    global current_executor
+    try:
+        if current_executor and current_executor.state == "paused":
+            current_executor.resume()
+        return jsonify({"ok": True, "status": "running"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/macros/<macro_id>/status", methods=["GET"])
 def macro_status(macro_id):
     """Get macro playback status"""

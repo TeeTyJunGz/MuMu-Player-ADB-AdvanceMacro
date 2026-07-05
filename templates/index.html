@@ -888,7 +888,26 @@ async function playMacro(macroId){
     const lc=document.getElementById('log-content'); if(lc)lc.innerHTML='<span style="color:#4fdb8c;">Running...</span>';
     const iv=setInterval(async()=>{
       const sd=await(await fetch(`/api/macros/${macroId}/status`)).json();
-      if(sd.ok){updateExecLog(sd.log);if(sd.status==='stopped'||sd.status==='idle')clearInterval(iv);}
+      if(sd.ok){
+        updateExecLog(sd.log);
+        
+        const playBtn=document.getElementById('btn-macro-play');
+        const pauseBtn=document.getElementById('btn-macro-pause');
+        
+        if(sd.status==='running'){
+          playBtn.style.display='none';
+          pauseBtn.style.display='block';
+          pauseBtn.innerHTML='⏸ Pause';
+        }else if(sd.status==='paused'){
+          playBtn.style.display='none';
+          pauseBtn.style.display='block';
+          pauseBtn.innerHTML='▶ Resume';
+        }else if(sd.status==='stopped'||sd.status==='idle'){
+          playBtn.style.display='block';
+          pauseBtn.style.display='none';
+          clearInterval(iv);
+        }
+      }
     },500);
   }
 }
@@ -916,6 +935,17 @@ document.getElementById('toggle-log-timestamp')?.addEventListener('change', asyn
   if(sd.ok) updateExecLog(sd.log);
 });
 document.getElementById('btn-macro-play')?.addEventListener('click',()=>{if(currentEditMacroId)playMacro(currentEditMacroId);});
+document.getElementById('btn-macro-pause')?.addEventListener('click',async()=>{
+  if(!currentEditMacroId) return;
+  const btn = document.getElementById('btn-macro-pause');
+  if(btn.innerHTML.includes('Pause')){
+    await fetch(`/api/macros/${currentEditMacroId}/pause`, {method:'POST'});
+    btn.innerHTML='▶ Resume';
+  } else {
+    await fetch(`/api/macros/${currentEditMacroId}/resume`, {method:'POST'});
+    btn.innerHTML='⏸ Pause';
+  }
+});
 document.getElementById('btn-macro-stop')?.addEventListener('click',async()=>{if(currentEditMacroId)await fetch(`/api/macros/${currentEditMacroId}/stop`,{method:'POST'});});
 document.getElementById('btn-new-macro')?.addEventListener('click',createMacro);
 

@@ -1,0 +1,424 @@
+{
+  "id": "macro_1783269712711",
+  "name": "EXP & Money EP6",
+  "description": "Auto Click Cookie Run on EP6 Using Any Cookie with 2 Pits Lift Treasure",
+  "created_at": "2026-07-05T23:41:52.711234",
+  "modified_at": "2026-07-05T23:41:52.711234",
+  "nodes": [
+    {
+      "id": "node_1783269716917",
+      "type": "tap",
+      "name": "Tap Play! (Home)",
+      "conditions": [],
+      "duration_ms": 259,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 200,
+      "rand_predelay_min": 0,
+      "rand_x": 25,
+      "rand_y": 25,
+      "randomize": true,
+      "rotation": 90,
+      "ui_x": 0.5184217792297474,
+      "ui_y": -76.53072608466351,
+      "x": 940,
+      "y": 647
+    },
+    {
+      "id": "node_1783269736021",
+      "type": "tap",
+      "name": "Tap Multi",
+      "conditions": [],
+      "duration_ms": 112,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 200,
+      "rand_predelay_min": 0,
+      "rand_x": 25,
+      "rand_y": 25,
+      "randomize": true,
+      "ui_x": 525.0910662724646,
+      "ui_y": 90.95091163707657,
+      "x": 1102,
+      "y": 194
+    },
+    {
+      "id": "node_1783269777855",
+      "type": "tap",
+      "name": "Tap Multi Buy",
+      "conditions": [],
+      "duration_ms": 140,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 250,
+      "rand_predelay_min": 0,
+      "rand_x": 25,
+      "rand_y": 25,
+      "randomize": true,
+      "ui_x": 899.2929196943292,
+      "ui_y": 90.49543651148679,
+      "x": 632,
+      "y": 589
+    },
+    {
+      "id": "node_1783271604595",
+      "type": "wait",
+      "name": "Wait",
+      "max_wait_ms": 0,
+      "pixel_condition": {
+        "hex_color": "#89B628",
+        "tolerance_percent": 2,
+        "x": 770,
+        "y": 612
+      },
+      "rotation": 180,
+      "time_ms": 60000,
+      "ui_x": 905.7759663486222,
+      "ui_y": 199.04600561912764,
+      "wait_type": "pixel"
+    },
+    {
+      "id": "node_1783271665129",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1000,
+      "rotation": 90,
+      "ui_x": 1.687862523336861,
+      "ui_y": 18.1344082257545
+    },
+    {
+      "id": "node_1783271666187",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1400,
+      "ui_x": 708.1315600193042,
+      "ui_y": 92.01019048029701
+    },
+    {
+      "id": "node_1783271729731",
+      "type": "tap",
+      "name": "Tap Play (Shop)",
+      "conditions": [],
+      "duration_ms": 145,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 200,
+      "rand_predelay_min": 0,
+      "rand_x": 25,
+      "rand_y": 25,
+      "randomize": true,
+      "rotation": 180,
+      "ui_x": 520.3110716339513,
+      "ui_y": 204.16920995285207,
+      "x": 904,
+      "y": 603
+    },
+    {
+      "id": "node_1783273938352",
+      "type": "tap",
+      "name": "Tap Random Box",
+      "conditions": [],
+      "duration_ms": 150,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 250,
+      "rand_predelay_min": 0,
+      "rand_x": 25,
+      "rand_y": 25,
+      "randomize": true,
+      "ui_x": 174.74197539512699,
+      "ui_y": 89.18179271499503,
+      "x": 541,
+      "y": 601
+    },
+    {
+      "id": "node_1783273981523",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1300,
+      "ui_x": 351.93726081769734,
+      "ui_y": 89.2735093312357
+    },
+    {
+      "id": "node_1783274124664",
+      "type": "tap",
+      "name": "Tap Booster",
+      "conditions": [],
+      "duration_ms": 120,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 50,
+      "rand_predelay_min": 0,
+      "rand_x": 26,
+      "rand_y": 26,
+      "randomize": true,
+      "rotation": 180,
+      "ui_x": 172.73534215428936,
+      "ui_y": 200.16165806279872,
+      "x": 626,
+      "y": 358
+    },
+    {
+      "id": "node_1783274342350",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1000,
+      "rotation": 180,
+      "ui_x": 707.0885980124991,
+      "ui_y": 203.3943862370103
+    },
+    {
+      "id": "node_1783274444373",
+      "type": "wait",
+      "name": "Wait",
+      "max_wait_ms": 0,
+      "pixel_condition": {
+        "hex_color": "#A3D563",
+        "tolerance_percent": 5,
+        "x": 610,
+        "y": 292
+      },
+      "rotation": 180,
+      "time_ms": 2000,
+      "ui_x": 352.91579980762157,
+      "ui_y": 203.37488039491512,
+      "wait_type": "pixel"
+    },
+    {
+      "id": "node_1783274806829",
+      "type": "wait",
+      "name": "Wait",
+      "max_wait_ms": 0,
+      "pixel_condition": {
+        "hex_color": "#8AB729",
+        "tolerance_percent": 1,
+        "x": 523,
+        "y": 618
+      },
+      "time_ms": 2000,
+      "ui_x": 170.9118734247494,
+      "ui_y": 314.5335249739835,
+      "wait_type": "pixel"
+    },
+    {
+      "id": "node_1783274838660",
+      "type": "tap",
+      "name": "Tap OK (Finshed)",
+      "conditions": [],
+      "duration_ms": 50,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 250,
+      "rand_predelay_min": 0,
+      "rand_x": 25,
+      "rand_y": 25,
+      "randomize": true,
+      "ui_x": 522.989753078961,
+      "ui_y": 313.3937273931542,
+      "x": 458,
+      "y": 617
+    },
+    {
+      "id": "node_1783274846747",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1500,
+      "ui_x": 352.0773069753145,
+      "ui_y": 312.2549561088024
+    },
+    {
+      "id": "node_1783274892060",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1300,
+      "ui_x": 708.7110493221367,
+      "ui_y": 315.03995552667027
+    },
+    {
+      "id": "node_1783274943646",
+      "type": "tap",
+      "name": "Tap Open (Tessure)",
+      "conditions": [],
+      "duration_ms": 120,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 100,
+      "rand_predelay_min": 0,
+      "rand_x": 10,
+      "rand_y": 10,
+      "randomize": true,
+      "ui_x": 906.9675714604953,
+      "ui_y": 315.0401064526229,
+      "x": 506,
+      "y": 666
+    },
+    {
+      "id": "node_1783274978488",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1500,
+      "rotation": 180,
+      "ui_x": 909.9394873617301,
+      "ui_y": 435.34516779325764
+    },
+    {
+      "id": "node_1783274990877",
+      "type": "tap",
+      "name": "Tap OK (Treasure)",
+      "conditions": [],
+      "duration_ms": 120,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 100,
+      "rand_predelay_min": 0,
+      "rand_x": 10,
+      "rand_y": 10,
+      "randomize": true,
+      "rotation": 180,
+      "ui_x": 711.6829652233719,
+      "ui_y": 433.06659892807653,
+      "x": 505,
+      "y": 667
+    },
+    {
+      "id": "node_1783275057458",
+      "type": "loop_end",
+      "name": "Loop_end",
+      "loop_color_id": 0,
+      "rotation": 180,
+      "ui_x": 354.73714352639274,
+      "ui_y": 435.69052746266607
+    },
+    {
+      "id": "node_1783275070591",
+      "type": "loop_start",
+      "name": "Loop_start",
+      "iterations": 2,
+      "loop_color_id": 0,
+      "loop_type": "fixed_count",
+      "pixel_hex": "#000000",
+      "pixel_x": 0,
+      "pixel_y": 0,
+      "rotation": 90,
+      "stop_time": "00:00",
+      "ui_x": -0.6046922306959317,
+      "ui_y": -178.8114032970392
+    },
+    {
+      "id": "node_1783275378158",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 3500,
+      "rotation": 180,
+      "ui_x": 530.7711953681232,
+      "ui_y": 435.26356763356785
+    }
+  ],
+  "connections": [
+    {
+      "from": "node_1783269716917",
+      "to": "node_1783271665129",
+      "label": "default"
+    },
+    {
+      "from": "node_1783269736021",
+      "to": "node_1783271666187",
+      "label": "default"
+    },
+    {
+      "from": "node_1783271666187",
+      "to": "node_1783269777855",
+      "label": "default"
+    },
+    {
+      "from": "node_1783269777855",
+      "to": "node_1783271604595",
+      "label": "default"
+    },
+    {
+      "from": "node_1783271665129",
+      "to": "node_1783273938352",
+      "label": "default"
+    },
+    {
+      "from": "node_1783273981523",
+      "to": "node_1783269736021",
+      "label": "default"
+    },
+    {
+      "from": "node_1783273938352",
+      "to": "node_1783273981523",
+      "label": "default"
+    },
+    {
+      "from": "node_1783271604595",
+      "to": "node_1783274342350",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274342350",
+      "to": "node_1783271729731",
+      "label": "default"
+    },
+    {
+      "from": "node_1783271729731",
+      "to": "node_1783274444373",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274444373",
+      "to": "node_1783274124664",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274124664",
+      "to": "node_1783274806829",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274806829",
+      "to": "node_1783274846747",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274846747",
+      "to": "node_1783274838660",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274838660",
+      "to": "node_1783274892060",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274892060",
+      "to": "node_1783274943646",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274943646",
+      "to": "node_1783274978488",
+      "label": "default"
+    },
+    {
+      "from": "node_1783275070591",
+      "to": "node_1783269716917",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274978488",
+      "to": "node_1783274990877",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274990877",
+      "to": "node_1783275378158",
+      "label": "default"
+    },
+    {
+      "from": "node_1783275378158",
+      "to": "node_1783275057458",
+      "label": "default"
+    }
+  ]
+}

@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 class MacroExecutor:
     """Executes macro workflows"""
     
-    def __init__(self, macro: Macro, device_serial: str):
+    def __init__(self, macro: Macro, device_serial: str, get_frame_callback=None):
         self.macro = macro
         self.serial = device_serial
+        self.get_frame_callback = get_frame_callback
         self.adb = adbutils.AdbClient(host="127.0.0.1", port=5037)
         self.device = self.adb.device(device_serial)
         
@@ -80,6 +81,11 @@ class MacroExecutor:
                 
                 # Execute node
                 result = self._execute_node(node)
+                
+                if self.stop_event.is_set():
+                    self._log("error", f"❌ {node.name} - stopped")
+                    break
+                
                 if result.get("success"):
                     self._log("info", f"✅ {node.name}")
                 else:
@@ -192,22 +198,41 @@ class MacroExecutor:
     def _execute_wait(self, node) -> Dict[str, Any]:
         """Execute wait node"""
         wait_type = node.data.get("wait_type", "time")
-        max_wait = node.data.get("max_wait_ms", 10000)
+        max_wait = node.data.get("max_wait_ms", 0)  # 0 = infinite
         start_time = time.time()
         
         if wait_type == "time":
-            self.stop_event.wait(node.data.get("time_ms", 1000) / 1000)
+            wait_ms = node.data.get("time_ms", 1000)
+            if wait_ms <= 0:
+                # Infinite wait — just wait for stop signal
+                self.stop_event.wait()
+            else:
+                self.stop_event.wait(wait_ms / 1000)
             return {"success": True}
         
-        elif wait_type == "pixel":
+        elif wait_type in ("pixel", "time_or_pixel"):
             pixel_cond = node.data.get("pixel_condition", {})
-            while time.time() - start_time < max_wait / 1000:
+            # Extract args explicitly to avoid passing unknown kwargs
+            px = pixel_cond.get("x", 0)
+            py = pixel_cond.get("y", 0)
+            hex_c = pixel_cond.get("hex_color", "#000000")
+            tol = pixel_cond.get("tolerance_percent", 10)
+            
+            # For 'time_or_pixel', use time_ms as the max wait time, otherwise use max_wait_ms
+            wait_limit = node.data.get("time_ms", 1000) if wait_type == "time_or_pixel" else max_wait
+            
+            while True:
                 if self.stop_event.is_set():
-                    break
-                if self._check_pixel_color(**pixel_cond):
+                    return {"success": False, "reason": "stopped"}
+                if self._check_pixel_color(x=px, y=py, hex_color=hex_c, tolerance=tol):
                     return {"success": True}
+                # Check timeout (0 = infinite)
+                if wait_limit > 0 and (time.time() - start_time) >= wait_limit / 1000:
+                    # If time_or_pixel, timing out is considered success (we waited the full time)
+                    if wait_type == "time_or_pixel":
+                        return {"success": True}
+                    return {"success": False, "reason": "timeout"}
                 self.stop_event.wait(0.1)
-            return {"success": False, "reason": "timeout"}
         
         return {"success": True}
     
@@ -321,21 +346,61 @@ class MacroExecutor:
         """Check single condition"""
         cond_type = condition.get("type")
         
-        if cond_type == "color_check":
+        if cond_type == "color_check" or cond_type == "pixel_color":
             return self._check_pixel_color(
                 x=condition.get("x"),
                 y=condition.get("y"),
-                hex_color=condition.get("hex_color"),
-                tolerance=condition.get("tolerance_percent", 0)
+                hex_color=condition.get("hex_color", "#000000"),
+                tolerance=condition.get("tolerance_percent", 10)
             )
         
         # TODO: Add time_check, etc.
         return True
     
-    def _check_pixel_color(self, x: int, y: int, hex_color: str, tolerance: float = 0) -> bool:
+    def _check_pixel_color(self, x: int, y: int, hex_color: str, tolerance: float = 10) -> bool:
         """Check if pixel at (x,y) matches color (with tolerance)"""
-        # TODO: Implement pixel color checking
-        return True
+        frame = self.get_frame_callback() if self.get_frame_callback else None
+        
+        try:
+            if frame is None:
+                # Fallback to ADB screenshot (headless mode)
+                pil_img = self.device.screenshot()
+                if pil_img is None:
+                    return False
+                w, h = pil_img.size
+                px = max(0, min(int(x), w - 1))
+                py = max(0, min(int(y), h - 1))
+                r, g, b = pil_img.getpixel((px, py))[:3]
+            else:
+                # frame is a numpy array (BGR format typically from OpenCV)
+                h, w = frame.shape[:2]
+                
+                # Ensure coordinates are within bounds
+                py = max(0, min(int(y), h - 1))
+                px = max(0, min(int(x), w - 1))
+                
+                # OpenCV frame is BGR
+                b, g, r = frame[py, px][:3]
+                b, g, r = int(b), int(g), int(r)
+            
+            # Parse target hex color
+            hex_color = hex_color.lstrip('#')
+            if len(hex_color) == 6:
+                target_r = int(hex_color[0:2], 16)
+                target_g = int(hex_color[2:4], 16)
+                target_b = int(hex_color[4:6], 16)
+            else:
+                return False
+                
+            # Calculate difference (Manhattan distance / max possible distance)
+            diff = abs(r - target_r) + abs(g - target_g) + abs(b - target_b)
+            diff_percent = (diff / 765.0) * 100.0
+            
+            return diff_percent <= tolerance
+            
+        except Exception as e:
+            self._log("error", f"Pixel check failed: {str(e)}")
+            return False
     
     def _find_start_nodes(self) -> List[str]:
         """Find nodes with no incoming connections"""

@@ -37,10 +37,33 @@ class MacroStorage:
     
     @staticmethod
     def list_all() -> List[str]:
-        """List all macro IDs"""
+        """List all macro IDs, respecting saved order if it exists"""
         MacroStorage.ensure_dir()
         files = os.listdir(MACROS_DIR)
-        return [f.replace(".macro.json", "") for f in files if f.endswith(".macro.json")]
+        all_ids = [f.replace(".macro.json", "") for f in files if f.endswith(".macro.json")]
+        
+        order_path = os.path.join(MACROS_DIR, "macro_order.json")
+        if os.path.exists(order_path):
+            try:
+                with open(order_path, 'r') as f:
+                    saved_order = json.load(f)
+                # Keep saved ones that still exist
+                ordered = [x for x in saved_order if x in all_ids]
+                # Append any new ones that aren't in the order list yet
+                new_ones = [x for x in all_ids if x not in ordered]
+                return ordered + new_ones
+            except Exception:
+                pass
+                
+        return all_ids
+        
+    @staticmethod
+    def save_order(macro_ids: List[str]):
+        """Save the custom ordering of macros"""
+        MacroStorage.ensure_dir()
+        path = os.path.join(MACROS_DIR, "macro_order.json")
+        with open(path, 'w') as f:
+            json.dump(macro_ids, f)
     
     @staticmethod
     def delete(macro_id: str):

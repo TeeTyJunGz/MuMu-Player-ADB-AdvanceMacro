@@ -893,6 +893,17 @@ def create_macro():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+@app.route("/api/macros/reorder", methods=["POST"])
+def reorder_macros():
+    """Save macro order"""
+    try:
+        data = request.json or {}
+        order = data.get("order", [])
+        MacroStorage.save_order(order)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/macros/<macro_id>", methods=["GET"])
 def get_macro(macro_id):
     """Get macro details"""
@@ -956,7 +967,17 @@ def play_macro(macro_id):
         if not macro:
             return jsonify({"ok": False, "error": "Macro not found"}), 404
         
-        current_executor = MacroExecutor(macro, serial)
+        if current_executor:
+            try:
+                current_executor.stop()
+            except Exception:
+                pass
+                
+        current_executor = MacroExecutor(
+            macro, 
+            serial, 
+            get_frame_callback=lambda: state.get("frame")
+        )
         current_executor.start()
         
         return jsonify({"ok": True, "status": "running"})

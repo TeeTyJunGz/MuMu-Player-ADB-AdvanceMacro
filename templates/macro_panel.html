@@ -13,16 +13,15 @@
     <input type="text" id="macro-name" placeholder="Macro name">
     <textarea id="macro-description" placeholder="Description" style="width:100%; margin-top:4px; padding:4px; border-radius:4px; border:1px solid var(--border); background:#1f2430; color:var(--text);"></textarea>
     
-    <div style="margin-top: 8px;">
-      <button id="btn-save-macro" style="background: #4fdb8c; color: #171a21;">Save Changes</button>
-    </div>
-    
     <!-- Playback controls -->
     <div style="margin-top: 8px; display:flex; gap: 4px;">
       <button id="btn-macro-play" style="flex:1;">▶ Play</button>
       <button id="btn-macro-pause" class="secondary" style="flex:1; display:none;">⏸ Pause</button>
       <button id="btn-macro-stop" class="secondary" style="flex:1;">⏹ Stop</button>
-      <button id="btn-macro-back" class="secondary" style="flex:1;">Back</button>
+    </div>
+    <div style="margin-top: 4px; display:flex; gap: 4px;">
+      <button id="btn-open-node-editor" class="secondary" style="flex:1;">🔧 Edit Nodes</button>
+      <button id="btn-macro-back" class="secondary" style="flex:1;">← Back</button>
     </div>
     
     <!-- Execution log -->

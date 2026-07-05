@@ -352,7 +352,7 @@
             <option value="pixel">Pixel color match</option>
             <option value="time_or_pixel">Time OR Pixel (first)</option>
           </select>
-          <label>Max time (ms)</label>
+          <label>Wait time (ms) <span style="color:var(--muted);font-size:9px;">0 = infinite</span></label>
           <input id="prop-wait-ms" type="number">
           <label>
             Pixel X <button class="pick-btn" id="btn-pick-wait-xy">📍 Pick</button>
@@ -367,8 +367,10 @@
             <input id="prop-hex-color" type="text" placeholder="#00FF00" style="flex:1;">
             <div id="prop-hex-preview" style="width:24px; height:24px; border-radius:4px; border:1px solid var(--border); background:#000; flex-shrink:0;"></div>
           </div>
-          <label>Timeout (ms)</label>
-          <input id="prop-max-wait" type="number">
+          <label>Tolerance (%) <span style="color:var(--muted);font-size:9px;">0-100</span></label>
+          <input id="prop-wait-tol" type="number" value="10" min="0" max="100">
+          <label>Timeout (ms) <span style="color:var(--muted);font-size:9px;">0 = wait forever</span></label>
+          <input id="prop-max-wait" type="number" value="0">
         </div>
 
         <!-- KEY -->
@@ -787,15 +789,29 @@ async function loadMacros(){
     const list=document.getElementById('macro-list');
     if(!d.macros.length){list.innerHTML='<div style="padding:8px;color:var(--muted);font-size:11px;">No macros yet. Create or record one!</div>';return;}
     list.innerHTML=d.macros.map(m=>`
-      <div class="macro-list-row" tabindex="0" data-id="${m.id}" style="padding:8px;border-bottom:1px solid var(--border);cursor:pointer;outline:none;">
+      <div class="macro-list-row" draggable="true" data-id="${m.id}" style="padding:8px;border-bottom:1px solid var(--border);cursor:pointer;outline:none;">
         <strong style="color:var(--accent); pointer-events:none;">${m.name}</strong>
         <div style="font-size:11px;color:var(--muted);margin:2px 0; pointer-events:none;">${m.description||''}</div>
-        <div style="font-size:10px;margin-bottom:5px;color:var(--muted); pointer-events:none;">Nodes: ${m.node_count}</div>
-        <div style="display:flex;gap:4px;flex-wrap:wrap;">
-          <button class="secondary" style="font-size:11px;padding:2px 6px;width:auto;" onclick="event.stopPropagation(); editMacro('${m.id}')">✏ Edit</button>
-          <button style="font-size:11px;padding:2px 6px;width:auto;background:#4fdb8c;border:none;color:#171a21;" onclick="event.stopPropagation(); playMacro('${m.id}')">▶ Play</button>
-        </div>
+        <div style="font-size:10px;color:var(--muted); pointer-events:none;">Nodes: ${m.node_count}</div>
       </div>`).join('');
+    // Drag-to-reorder
+    list.querySelectorAll('.macro-list-row').forEach(row=>{
+      row.addEventListener('dragstart',e=>{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',row.dataset.id);row.style.opacity='0.4';});
+      row.addEventListener('dragend',()=>{row.style.opacity='';});
+      row.addEventListener('dragover',e=>{e.preventDefault();e.dataTransfer.dropEffect='move';row.style.borderTop='2px solid var(--accent)';});
+      row.addEventListener('dragleave',()=>{row.style.borderTop='';});
+      row.addEventListener('drop',async e=>{
+        e.preventDefault();
+        row.style.borderTop='';
+        const dragId=e.dataTransfer.getData('text/plain');
+        const dragEl=list.querySelector(`[data-id="${dragId}"]`);
+        if(dragEl&&dragEl!==row) {
+          list.insertBefore(dragEl,row);
+          const newOrder = Array.from(list.querySelectorAll('.macro-list-row')).map(r=>r.dataset.id);
+          await fetch('/api/macros/reorder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order:newOrder})});
+        }
+      });
+    });
   } catch(e){}
 }
 async function createMacro(){
@@ -806,21 +822,60 @@ async function createMacro(){
 }
 async function deleteMacro(id){ await fetch(`/api/macros/${id}`,{method:'DELETE'}); loadMacros(); }
 
-document.getElementById('macro-list')?.addEventListener('keydown', e => {
-  if (e.key === 'Delete' || e.key === 'Backspace') {
-    const active = document.activeElement;
-    if (active && active.classList.contains('macro-list-row')) {
-      const id = active.getAttribute('data-id');
-      if (confirm('Are you sure you want to delete this macro?')) {
-        deleteMacro(id);
+// Right-click context menu on macro list
+let ctxMenu=null;
+document.getElementById('macro-list')?.addEventListener('contextmenu', e=>{
+  e.preventDefault();
+  const row=e.target.closest('.macro-list-row');
+  if(!row)return;
+  const id=row.dataset.id;
+  const name=row.querySelector('strong')?.textContent||'';
+  if(ctxMenu)ctxMenu.remove();
+  ctxMenu=document.createElement('div');
+  ctxMenu.style.cssText='position:fixed;z-index:99999;background:#1e2230;border:1px solid var(--border);border-radius:6px;padding:4px 0;min-width:140px;box-shadow:0 4px 12px rgba(0,0,0,0.5);';
+  ctxMenu.style.left=e.clientX+'px'; ctxMenu.style.top=e.clientY+'px';
+  ctxMenu.innerHTML=`
+    <div class="ctx-item" data-action="rename" style="padding:6px 14px;cursor:pointer;font-size:12px;color:var(--text);">✏️ Rename</div>
+    <div style="border-top:1px solid var(--border);margin:2px 0;"></div>
+    <div class="ctx-item" data-action="delete" style="padding:6px 14px;cursor:pointer;font-size:12px;color:#e74c3c;">🗑 Delete</div>`;
+  document.body.appendChild(ctxMenu);
+  ctxMenu.querySelectorAll('.ctx-item').forEach(item=>{
+    item.addEventListener('mouseenter',()=>item.style.background='rgba(79,140,255,0.15)');
+    item.addEventListener('mouseleave',()=>item.style.background='');
+    item.addEventListener('click',async()=>{
+      ctxMenu.remove();ctxMenu=null;
+      if(item.dataset.action==='rename'){
+        const newName=prompt('Rename macro:',name); if(!newName)return;
+        await fetch(`/api/macros/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:newName})});
+        loadMacros();
+      }else if(item.dataset.action==='delete'){
+        if(confirm(`Delete "${name}"?`)){deleteMacro(id);}
       }
-    }
-  }
+    });
+  });
 });
-document.getElementById('macro-list')?.addEventListener('click', e => {
-  const row = e.target.closest('.macro-list-row');
-  if (row) row.focus();
+document.addEventListener('click',()=>{if(ctxMenu){ctxMenu.remove();ctxMenu=null;}});
+
+// Left-click on macro list = open macro editor (without node editor)
+document.getElementById('macro-list')?.addEventListener('click', e=>{
+  const row=e.target.closest('.macro-list-row');
+  if(row) openMacroPanel(row.dataset.id);
 });
+
+async function openMacroPanel(macroId){
+  try{
+    const d=await(await fetch(`/api/macros/${macroId}`)).json(); if(!d.ok)return;
+    const macro=d.macro;
+    currentEditMacroId=macro.id;
+    currentNodes=macro.nodes||[];
+    currentConnections=macro.connections||[];
+    document.getElementById('macro-name').value=macro.name;
+    document.getElementById('macro-description').value=macro.description||'';
+    document.getElementById('macro-list-container').style.display='none';
+    document.getElementById('macro-editor').style.display='block';
+    document.getElementById('node-editor-container').style.display='none';
+  }catch(e){console.error(e);}
+}
 async function playMacro(macroId){
   const serial=deviceSelect.value||document.getElementById('manualSerial').value.trim();
   if(!serial){alert('No device connected');return;}
@@ -839,14 +894,25 @@ function updateExecLog(entries){
   lc.scrollTop=lc.scrollHeight;
 }
 document.getElementById('btn-macro-back')?.addEventListener('click',()=>{
+  autoSaveNow();
   document.getElementById('macro-list-container').style.display='block';
   document.getElementById('macro-editor').style.display='none';
   document.getElementById('node-editor-container').style.display='none';
+  currentEditMacroId=null;
   window.scrollTo({top:0,behavior:'smooth'});
 });
 document.getElementById('btn-macro-play')?.addEventListener('click',()=>{if(currentEditMacroId)playMacro(currentEditMacroId);});
 document.getElementById('btn-macro-stop')?.addEventListener('click',async()=>{if(currentEditMacroId)await fetch(`/api/macros/${currentEditMacroId}/stop`,{method:'POST'});});
 document.getElementById('btn-new-macro')?.addEventListener('click',createMacro);
+
+// Open node editor from macro editor panel
+document.getElementById('btn-open-node-editor')?.addEventListener('click',()=>{
+  if(!currentEditMacroId)return;
+  const ec=document.getElementById('node-editor-container');
+  ec.style.display='flex';
+  setTimeout(()=>ec.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  setTimeout(()=>initEditor(), 50);
+});
 
 // =============================================
 //  KONVA NODE EDITOR
@@ -898,7 +964,7 @@ function setupDrop(){
     const cy=(e.clientY-rect.top-sy)/scale;
     const id='node_'+Date.now();
     currentNodes.push(makeDefaults(t,id,cx,cy));
-    redraw(); selectNodes([id]);
+    redraw(); selectNodes([id]); scheduleAutoSave();
   });
 }
 
@@ -906,7 +972,7 @@ function makeDefaults(type,id,x,y){
   const base={id,type,name:type.charAt(0).toUpperCase()+type.slice(1),ui_x:x,ui_y:y};
   if(type==='tap') return{...base,x:0,y:0,duration_ms:50,conditions:[],randomize:false,rand_x:2,rand_y:2,rand_dur_min:20,rand_dur_max:80,rand_predelay_min:0,rand_predelay_max:50};
   if(type==='delay') return{...base,delay_ms:1000};
-  if(type==='wait') return{...base,wait_type:'time',time_ms:2000,pixel_condition:null,max_wait_ms:10000};
+  if(type==='wait') return{...base,wait_type:'time',time_ms:2000,pixel_condition:null,max_wait_ms:0};
   if(type==='key') return{...base,text_input:'',delay_between_keys_ms:50};
   if(type==='loop_start') return{...base,loop_type:'fixed_count',iterations:5,loop_color_id:0,stop_time:'00:00',pixel_x:0,pixel_y:0,pixel_hex:'#000000'};
   if(type==='loop_end') return{...base,loop_color_id:0};
@@ -915,23 +981,12 @@ function makeDefaults(type,id,x,y){
 }
 
 async function editMacro(macroId){
-  try {
-    const d=await(await fetch(`/api/macros/${macroId}`)).json(); if(!d.ok)return;
-    const macro=d.macro;
-    currentEditMacroId=macro.id;
-    currentNodes=macro.nodes||[];
-    currentConnections=macro.connections||[];
-    document.getElementById('macro-name').value=macro.name;
-    document.getElementById('macro-description').value=macro.description||'';
-    document.getElementById('macro-list-container').style.display='none';
-    document.getElementById('macro-editor').style.display='block';
-    const ec=document.getElementById('node-editor-container');
-    ec.style.display='flex';
-    document.getElementById('visual-editor-macro-name').textContent=macro.name;
-    // Scroll to node editor
-    setTimeout(()=>ec.scrollIntoView({behavior:'smooth',block:'start'}),100);
-    setTimeout(()=>initEditor(), 50);
-  } catch(e){console.error(e);}
+  await openMacroPanel(macroId);
+  const ec=document.getElementById('node-editor-container');
+  ec.style.display='flex';
+  document.getElementById('visual-editor-macro-name').textContent=document.getElementById('macro-name').value;
+  setTimeout(()=>ec.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  setTimeout(()=>initEditor(), 50);
 }
 
 function initEditor(){
@@ -1210,7 +1265,7 @@ function drawNode(nd){
   g.on('dragend',()=>{
     const n=currentNodes.find(n=>n.id===nd.id);
     if(n){n.ui_x=g.x();n.ui_y=g.y();}
-    redraw();
+    redraw(); scheduleAutoSave();
   });
   // While dragging, redraw connections live
   g.on('dragmove',()=>{
@@ -1306,7 +1361,7 @@ function receiveConn(toId){
   currentConnections=currentConnections.filter(c=>!(c.from===connectingFrom&&c.label===pendingConnLabel));
   currentConnections.push({from:connectingFrom,to:toId,label:pendingConnLabel});
   connectingFrom=null; document.body.style.cursor='default';
-  redraw(); flashStatus('✓ Connection added');
+  redraw(); scheduleAutoSave(); flashStatus('✓ Connection added');
 }
 
 function flashStatus(msg){
@@ -1354,7 +1409,8 @@ function showProps(nd){
     document.getElementById('prop-py').value=nd.pixel_condition?.y||0;
     document.getElementById('prop-hex-color').value=nd.pixel_condition?.hex_color||'#00FF00';
     document.getElementById('prop-hex-preview').style.backgroundColor=nd.pixel_condition?.hex_color||'#00FF00';
-    document.getElementById('prop-max-wait').value=nd.max_wait_ms||10000;
+    document.getElementById('prop-wait-tol').value=nd.pixel_condition?.tolerance_percent??10;
+    document.getElementById('prop-max-wait').value=nd.max_wait_ms||0;
   }
   if(nd.type==='key'){
     document.getElementById('prop-text-input').value=nd.text_input||'';
@@ -1396,7 +1452,7 @@ function showProps(nd){
 
 function deleteConn(from,to,label){
   currentConnections=currentConnections.filter(c=>!(c.from===from&&c.to===to&&c.label===label));
-  redraw();
+  redraw(); scheduleAutoSave();
   const nd=currentNodes.find(n=>n.id===from); if(nd&&selectedNodeIds.has(from))showProps(nd);
 }
 
@@ -1421,11 +1477,12 @@ document.getElementById('btn-apply-props')?.addEventListener('click',()=>{
   if(nd.type==='wait'){
     nd.wait_type=document.getElementById('prop-wait-type').value;
     nd.time_ms=parseInt(document.getElementById('prop-wait-ms').value)||2000;
-    nd.max_wait_ms=parseInt(document.getElementById('prop-max-wait').value)||10000;
+    nd.max_wait_ms=parseInt(document.getElementById('prop-max-wait').value)||0;
     const px=parseInt(document.getElementById('prop-px').value)||0;
     const py=parseInt(document.getElementById('prop-py').value)||0;
     const hex=document.getElementById('prop-hex-color').value;
-    if(px||py||hex)nd.pixel_condition={x:px,y:py,hex_color:hex||'#00FF00',tolerance_percent:10};
+    const tol=parseInt(document.getElementById('prop-wait-tol').value);
+    if(px||py||hex)nd.pixel_condition={x:px,y:py,hex_color:hex||'#00FF00',tolerance_percent:isNaN(tol)?10:tol};
   }
   if(nd.type==='key'){nd.text_input=document.getElementById('prop-text-input').value;nd.delay_between_keys_ms=parseInt(document.getElementById('prop-key-delay').value)||50;}
   if(nd.type==='loop_start'){
@@ -1447,7 +1504,7 @@ document.getElementById('btn-apply-props')?.addEventListener('click',()=>{
       hex_color:document.getElementById('prop-cond-hex').value||'#FF0000',
       tolerance_percent:parseInt(document.getElementById('prop-cond-tol').value)||10};
   }
-  redraw(); flashStatus('✓ Node updated');
+  redraw(); scheduleAutoSave(); flashStatus('✓ Node updated');
 });
 
 // Pick X,Y from screen
@@ -1517,31 +1574,44 @@ document.getElementById('btn-delete-selected')?.addEventListener('click',()=>{
   selectedNodeIds.clear();
   document.getElementById('node-props-form').style.display='none';
   document.getElementById('node-props-hint').style.display='block';
-  redraw(); updateSelInfo();
+  redraw(); updateSelInfo(); scheduleAutoSave();
 });
 
 // Zoom fit
 document.getElementById('btn-zoom-fit')?.addEventListener('click',zoomFit);
 
-// Save
-document.getElementById('btn-save-graph')?.addEventListener('click',async()=>{
+// Auto-save (debounced)
+let _autoSaveTimer=null;
+function scheduleAutoSave(){
+  if(_autoSaveTimer)clearTimeout(_autoSaveTimer);
+  _autoSaveTimer=setTimeout(autoSaveNow,800);
+}
+async function autoSaveNow(){
+  if(_autoSaveTimer){clearTimeout(_autoSaveTimer);_autoSaveTimer=null;}
   if(!currentEditMacroId)return;
   const name=document.getElementById('macro-name').value;
   const desc=document.getElementById('macro-description').value;
-  try {
-    const d=await(await fetch(`/api/macros/${currentEditMacroId}`,{
+  try{
+    await fetch(`/api/macros/${currentEditMacroId}`,{
       method:'PUT',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name,description:desc,nodes:currentNodes,connections:currentConnections})
-    })).json();
-    if(d.ok){flashStatus('✓ Macro saved!');loadMacros();}
-    else flashStatus('Save failed: '+JSON.stringify(d));
-  } catch(e){console.error(e);}
+    });
+    loadMacros();
+  }catch(e){console.error(e);}
+}
+
+// Save graph button (also triggers auto-save explicitly with status)
+document.getElementById('btn-save-graph')?.addEventListener('click',async()=>{
+  await autoSaveNow();
+  flashStatus('✓ Macro saved!');
 });
+
+// Close node editor = hide it + auto-save, stay in macro editor panel
 document.getElementById('btn-close-editor')?.addEventListener('click',()=>{
+  autoSaveNow();
   document.getElementById('node-editor-container').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
 });
-document.getElementById('btn-save-macro')?.addEventListener('click',()=>document.getElementById('btn-save-graph')?.click());
 
 // Init
 loadMacros();

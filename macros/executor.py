@@ -46,7 +46,7 @@ class MacroExecutor:
         """Pause execution"""
         if self.state == "running":
             self.state = "paused"
-            self.pause_event.wait()
+            self.pause_event.clear()
     
     def resume(self):
         """Resume from pause"""
@@ -58,6 +58,8 @@ class MacroExecutor:
         """Stop execution"""
         self.stop_event.set()
         self.state = "stopped"
+        # Unblock if paused
+        self.pause_event.set()
     
     def _execute(self):
         """Main execution loop"""

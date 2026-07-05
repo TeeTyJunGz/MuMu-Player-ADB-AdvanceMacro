@@ -293,7 +293,7 @@
       "id": "node_1783275070591",
       "type": "loop_start",
       "name": "Loop_start",
-      "iterations": 190,
+      "iterations": 180,
       "loop_color_id": 0,
       "loop_type": "fixed_count",
       "pixel_hex": "#000000",

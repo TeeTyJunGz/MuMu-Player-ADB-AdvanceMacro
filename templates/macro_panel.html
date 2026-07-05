@@ -25,7 +25,13 @@
     </div>
     
     <!-- Execution log -->
-    <div id="macro-log" style="border: 1px solid var(--border); height: 150px; overflow-y: auto; margin-top: 8px; border-radius: 4px; font-size: 11px; padding: 4px; background: #0f1115;">
+    <div style="margin-top: 8px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-weight:bold; font-size:12px; color:var(--text);">Execution Log</span>
+      <label style="font-size:10px; color:var(--muted); display:flex; align-items:center; gap:4px; cursor:pointer;">
+        <input type="checkbox" id="toggle-log-timestamp" checked> Show Timestamp
+      </label>
+    </div>
+    <div id="macro-log" style="border: 1px solid var(--border); height: 150px; overflow-y: auto; margin-top: 4px; border-radius: 4px; font-size: 11px; padding: 4px; background: #0f1115;">
       <pre id="log-content" style="margin:0;"></pre>
     </div>
   </div>

@@ -261,7 +261,9 @@ class MacroExecutor:
         # Always reset loop state when entering loop_start to allow safe re-entry
         self.loop_states[color_id] = {
             "count": 0,
-            "start_time": time.time()
+            "start_time": time.time(),
+            "loop_type": node.data.get("loop_type", "fixed_count"),
+            "iterations": int(node.data.get("iterations", 1))
         }
         
         # Loop start doesn't evaluate condition to jump OUT of loop, 
@@ -426,10 +428,28 @@ class MacroExecutor:
     
     def _log(self, level: str, message: str):
         """Log execution event"""
+        prefix = ""
+        if self.loop_states:
+            # find oldest active loop (outermost)
+            outermost = min(self.loop_states.values(), key=lambda x: x["start_time"])
+            ltype = outermost.get("loop_type")
+            if ltype == "fixed_count":
+                prefix = f"[Loop {outermost.get('count', 0)+1}/{outermost.get('iterations', 1)}] "
+            elif ltype == "while_true":
+                prefix = "[Loop ∞] "
+            elif ltype == "until_time":
+                prefix = "[Loop 🕒] "
+            elif ltype == "until_color":
+                prefix = "[Loop 🎨] "
+            else:
+                prefix = "[Loop] "
+                
+        full_message = f"{prefix}{message}"
+        
         self.execution_log.append({
             "timestamp": datetime.now().isoformat(),
             "level": level,
-            "message": message,
+            "message": full_message,
             "node_id": self.current_node_id
         })
-        print(f"[MacroExecutor] {level.upper()}: {message}")
+        print(f"[MacroExecutor] {level.upper()}: {full_message}")

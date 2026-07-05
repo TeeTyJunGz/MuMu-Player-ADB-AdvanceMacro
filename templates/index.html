@@ -894,7 +894,11 @@ async function playMacro(macroId){
 }
 function updateExecLog(entries){
   const lc=document.getElementById('log-content'); if(!lc)return;
-  lc.innerHTML=(entries||[]).map(e=>`<div style="margin-bottom:2px;"><span style="color:var(--muted);">${new Date(e.timestamp).toLocaleTimeString()}</span> <span style="color:${e.level==='error'?'#e74c3c':'#4fdb8c'};">[${e.level.toUpperCase()}]</span> ${e.message}</div>`).join('');
+  const showTime=document.getElementById('toggle-log-timestamp')?.checked ?? true;
+  lc.innerHTML=(entries||[]).map(e=>{
+    const ts = showTime ? `<span style="color:var(--muted);">${new Date(e.timestamp).toLocaleTimeString()}</span> ` : '';
+    return `<div style="margin-bottom:2px;">${ts}<span style="color:${e.level==='error'?'#e74c3c':'#4fdb8c'};">[${e.level.toUpperCase()}]</span> ${e.message}</div>`;
+  }).join('');
   const ml=document.getElementById('macro-log');
   if(ml) ml.scrollTop=ml.scrollHeight;
 }
@@ -905,6 +909,11 @@ document.getElementById('btn-macro-back')?.addEventListener('click',()=>{
   document.getElementById('node-editor-container').style.display='none';
   currentEditMacroId=null;
   window.scrollTo({top:0,behavior:'smooth'});
+});
+document.getElementById('toggle-log-timestamp')?.addEventListener('change', async()=>{
+  if(!currentEditMacroId) return;
+  const sd=await(await fetch(`/api/macros/${currentEditMacroId}/status`)).json();
+  if(sd.ok) updateExecLog(sd.log);
 });
 document.getElementById('btn-macro-play')?.addEventListener('click',()=>{if(currentEditMacroId)playMacro(currentEditMacroId);});
 document.getElementById('btn-macro-stop')?.addEventListener('click',async()=>{if(currentEditMacroId)await fetch(`/api/macros/${currentEditMacroId}/stop`,{method:'POST'});});

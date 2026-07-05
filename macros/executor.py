@@ -94,7 +94,7 @@ class MacroExecutor:
                     self._log("error", f"❌ {node.name} - {err}")
                 
                 # Determine next node
-                if result.get("branch_to"):
+                if "branch_to" in result:
                     current_id = result["branch_to"]
                 else:
                     next_nodes = self.macro.get_next_nodes(current_id)
@@ -258,11 +258,11 @@ class MacroExecutor:
         """Execute loop start node"""
         color_id = node.data.get("loop_color_id", 0)
         
-        if color_id not in self.loop_states:
-            self.loop_states[color_id] = {
-                "count": 0,
-                "start_time": time.time()
-            }
+        # Always reset loop state when entering loop_start to allow safe re-entry
+        self.loop_states[color_id] = {
+            "count": 0,
+            "start_time": time.time()
+        }
         
         # Loop start doesn't evaluate condition to jump OUT of loop, 
         # it just initializes and passes execution inside. 
@@ -329,10 +329,10 @@ class MacroExecutor:
     def _execute_condition(self, node) -> Dict[str, Any]:
         """Execute condition branching"""
         condition = node.data.get("condition", {})
-        if self._check_condition(condition):
-            branch = node.data.get("true_branch")
-        else:
-            branch = node.data.get("false_branch")
+        branch_label = "true" if self._check_condition(condition) else "false"
+        
+        next_nodes = self.macro.get_next_nodes(node.id, label=branch_label)
+        branch = next_nodes[0] if next_nodes else None
         
         return {"success": True, "branch_to": branch}
     

@@ -66,10 +66,10 @@
       "name": "Wait 4 2x Coin",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "x": 770,
-        "y": 612,
         "hex_color": "#89B628",
-        "tolerance_percent": 2
+        "tolerance_percent": 2,
+        "x": 770,
+        "y": 612
       },
       "rotation": 180,
       "time_ms": 60000,
@@ -173,10 +173,10 @@
       "name": "Wait 4 Booster",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "x": 610,
-        "y": 292,
         "hex_color": "#A3D563",
-        "tolerance_percent": 5
+        "tolerance_percent": 5,
+        "x": 610,
+        "y": 292
       },
       "rotation": 180,
       "time_ms": 2000,
@@ -190,10 +190,10 @@
       "name": "Wait 4 End Screen",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "x": 523,
-        "y": 618,
         "hex_color": "#8AB729",
-        "tolerance_percent": 1
+        "tolerance_percent": 1,
+        "x": 523,
+        "y": 618
       },
       "time_ms": 2000,
       "ui_x": 909.9394873617301,
@@ -247,8 +247,8 @@
       "rand_x": 10,
       "rand_y": 10,
       "randomize": true,
-      "ui_x": 1647.143632569171,
-      "ui_y": 308.5236683445435,
+      "ui_x": 1925.5084496394406,
+      "ui_y": 295.32037156241,
       "x": 506,
       "y": 666
     },
@@ -258,8 +258,8 @@
       "name": "Delay",
       "delay_ms": 1500,
       "rotation": 180,
-      "ui_x": 1647.143632569171,
-      "ui_y": 428.8287296851783
+      "ui_x": 1925.5084496394406,
+      "ui_y": 169.42395790650357
     },
     {
       "id": "node_1783274990877",
@@ -275,8 +275,8 @@
       "rand_y": 10,
       "randomize": true,
       "rotation": 180,
-      "ui_x": 1448.8871104308128,
-      "ui_y": 428.74712952548845,
+      "ui_x": 1727.2519275010825,
+      "ui_y": 169.3423577468136,
       "x": 505,
       "y": 667
     },
@@ -286,14 +286,14 @@
       "name": "Loop_end",
       "loop_color_id": 0,
       "rotation": 180,
-      "ui_x": 1091.9412887338335,
-      "ui_y": 429.17408935458667
+      "ui_x": 1370.3061058041033,
+      "ui_y": 169.76931757591183
     },
     {
       "id": "node_1783275070591",
       "type": "loop_start",
       "name": "Loop_start",
-      "iterations": 2,
+      "iterations": 200,
       "loop_color_id": 0,
       "loop_type": "fixed_count",
       "pixel_hex": "#000000",
@@ -310,8 +310,8 @@
       "name": "Delay",
       "delay_ms": 3500,
       "rotation": 180,
-      "ui_x": 1267.9753405755641,
-      "ui_y": 428.74712952548845
+      "ui_x": 1546.3401576458339,
+      "ui_y": 169.3423577468136
     },
     {
       "id": "node_1783279709712",
@@ -319,10 +319,10 @@
       "name": "Wait 4 Relay",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "x": 610,
-        "y": 292,
         "hex_color": "#A3D563",
-        "tolerance_percent": 1
+        "tolerance_percent": 1,
+        "x": 610,
+        "y": 292
       },
       "time_ms": 2000,
       "ui_x": 354.73714352639274,
@@ -362,6 +362,38 @@
       "delay_ms": 1000,
       "ui_x": 711.6829652233719,
       "ui_y": 308.5236683445435
+    },
+    {
+      "id": "node_1783280951104",
+      "type": "condition",
+      "name": "Condition",
+      "condition": {
+        "hex_color": "#19A0A5",
+        "tolerance_percent": 5,
+        "type": "pixel_color",
+        "x": 623,
+        "y": 614
+      },
+      "false_branch": null,
+      "true_branch": null,
+      "ui_x": 1634.691910495573,
+      "ui_y": 308.5236683445435
+    },
+    {
+      "id": "node_1783281148306",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 3500,
+      "ui_x": 1925.5084496394406,
+      "ui_y": 391.86594240841254
+    },
+    {
+      "id": "node_1783281179760",
+      "type": "loop_end",
+      "name": "Loop_end",
+      "loop_color_id": 0,
+      "ui_x": 2130.5777701873762,
+      "ui_y": 391.86594240841254
     }
   ],
   "connections": [
@@ -436,11 +468,6 @@
       "label": "default"
     },
     {
-      "from": "node_1783274892060",
-      "to": "node_1783274943646",
-      "label": "default"
-    },
-    {
       "from": "node_1783274943646",
       "to": "node_1783274978488",
       "label": "default"
@@ -489,6 +516,26 @@
       "from": "node_1783279865032",
       "to": "node_1783274806829",
       "label": "default"
+    },
+    {
+      "from": "node_1783281148306",
+      "to": "node_1783281179760",
+      "label": "default"
+    },
+    {
+      "from": "node_1783274892060",
+      "to": "node_1783280951104",
+      "label": "default"
+    },
+    {
+      "from": "node_1783280951104",
+      "to": "node_1783274943646",
+      "label": "true"
+    },
+    {
+      "from": "node_1783280951104",
+      "to": "node_1783281148306",
+      "label": "false"
     }
   ]
 }

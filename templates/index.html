@@ -895,7 +895,8 @@ async function playMacro(macroId){
 function updateExecLog(entries){
   const lc=document.getElementById('log-content'); if(!lc)return;
   lc.innerHTML=(entries||[]).map(e=>`<div style="margin-bottom:2px;"><span style="color:var(--muted);">${new Date(e.timestamp).toLocaleTimeString()}</span> <span style="color:${e.level==='error'?'#e74c3c':'#4fdb8c'};">[${e.level.toUpperCase()}]</span> ${e.message}</div>`).join('');
-  lc.scrollTop=lc.scrollHeight;
+  const ml=document.getElementById('macro-log');
+  if(ml) ml.scrollTop=ml.scrollHeight;
 }
 document.getElementById('btn-macro-back')?.addEventListener('click',()=>{
   autoSaveNow();

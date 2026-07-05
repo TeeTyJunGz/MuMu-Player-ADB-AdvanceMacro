@@ -63,13 +63,13 @@
     {
       "id": "node_1783271604595",
       "type": "wait",
-      "name": "Wait",
+      "name": "Wait 4 2x Coin",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "hex_color": "#89B628",
-        "tolerance_percent": 2,
         "x": 770,
-        "y": 612
+        "y": 612,
+        "hex_color": "#89B628",
+        "tolerance_percent": 2
       },
       "rotation": 180,
       "time_ms": 60000,
@@ -170,13 +170,13 @@
     {
       "id": "node_1783274444373",
       "type": "wait",
-      "name": "Wait",
+      "name": "Wait 4 Booster",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "hex_color": "#A3D563",
-        "tolerance_percent": 5,
         "x": 610,
-        "y": 292
+        "y": 292,
+        "hex_color": "#A3D563",
+        "tolerance_percent": 5
       },
       "rotation": 180,
       "time_ms": 2000,
@@ -187,13 +187,13 @@
     {
       "id": "node_1783274806829",
       "type": "wait",
-      "name": "Wait",
+      "name": "Wait 4 End Screen",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "hex_color": "#8AB729",
-        "tolerance_percent": 1,
         "x": 523,
-        "y": 618
+        "y": 618,
+        "hex_color": "#8AB729",
+        "tolerance_percent": 1
       },
       "time_ms": 2000,
       "ui_x": 909.9394873617301,
@@ -316,13 +316,13 @@
     {
       "id": "node_1783279709712",
       "type": "wait",
-      "name": "Wait",
+      "name": "Wait 4 Relay",
       "max_wait_ms": 0,
       "pixel_condition": {
-        "hex_color": "#A3D563",
-        "tolerance_percent": 1,
         "x": 610,
-        "y": 292
+        "y": 292,
+        "hex_color": "#A3D563",
+        "tolerance_percent": 1
       },
       "time_ms": 2000,
       "ui_x": 354.73714352639274,

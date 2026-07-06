@@ -114,6 +114,15 @@ class MacroExecutor:
         result = {"success": False}
         
         try:
+            disabled = node.data.get("disabled") or node.data.get("data", {}).get("disabled")
+            if disabled:
+                if node.type == "condition":
+                    next_nodes = self.macro.get_next_nodes(node.id, label="true")
+                    branch = next_nodes[0] if next_nodes else None
+                    return {"success": True, "branch_to": branch}
+                elif node.type not in ("loop_start", "loop_end"):
+                    return {"success": True}
+                    
             if node.type == "tap":
                 result = self._execute_tap(node)
             elif node.type == "key":

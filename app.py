@@ -893,6 +893,40 @@ def create_macro():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+@app.route("/api/macros/import", methods=["POST"])
+def import_macro():
+    """Import a macro from JSON"""
+    try:
+        data = request.json
+        if not data:
+            return jsonify({"ok": False, "error": "No data provided"}), 400
+            
+        import time, random
+        new_id = f"macro_{int(time.time() * 1000)}_{random.randint(1000, 9999)}"
+        data["id"] = new_id
+        
+        # We can just create a Macro object and then populate its nodes and connections
+        macro = Macro(new_id, data.get("name", "Imported Macro"), data.get("description", ""))
+        
+        if "nodes" in data:
+            for n_id, node_data in data["nodes"].items() if isinstance(data["nodes"], dict) else enumerate(data["nodes"]):
+                # if data["nodes"] is a list, node_data is the item. if it's a dict, node_data is the value.
+                if isinstance(data["nodes"], list):
+                    nd = node_data
+                else:
+                    nd = node_data
+                macro.nodes[nd["id"]] = MacroNode.from_dict(nd.copy())
+                
+        if "connections" in data:
+            for conn_data in data["connections"]:
+                conn = Connection(conn_data["from"], conn_data["to"], conn_data.get("label", "default"))
+                macro.connections.append(conn)
+                
+        MacroStorage.save(macro)
+        return jsonify({"ok": True, "macro": macro.to_dict()})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route("/api/macros/reorder", methods=["POST"])
 def reorder_macros():
     """Save macro order"""

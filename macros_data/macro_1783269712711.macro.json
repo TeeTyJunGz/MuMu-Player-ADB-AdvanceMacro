@@ -1,7 +1,7 @@
 {
   "id": "macro_1783269712711",
   "name": "EXP & Money w/ Relay EP6",
-  "description": "Auto Click Cookie Run on EP6 Using Any Cookie with 2 Pits Lift Treasure",
+  "description": "Auto Click Cookie Run on EP6. \nUsing Any Cookie with 2 Pits Lift Treasure",
   "created_at": "2026-07-05T23:41:52.711234",
   "modified_at": "2026-07-05T23:41:52.711234",
   "nodes": [
@@ -19,8 +19,8 @@
       "rand_y": 25,
       "randomize": true,
       "rotation": 90,
-      "ui_x": 0.5184217792297474,
-      "ui_y": -76.53072608466351,
+      "ui_x": -434.94210401986874,
+      "ui_y": -118.27511989589249,
       "x": 940,
       "y": 647
     },
@@ -83,8 +83,8 @@
       "name": "Delay",
       "delay_ms": 1000,
       "rotation": 90,
-      "ui_x": 1.687862523336861,
-      "ui_y": 21.273837934670567
+      "ui_x": -433.77266327576166,
+      "ui_y": -15.105708860431292
     },
     {
       "id": "node_1783271666187",
@@ -293,7 +293,7 @@
       "id": "node_1783275070591",
       "type": "loop_start",
       "name": "Loop_start",
-      "iterations": 180,
+      "iterations": 100,
       "loop_color_id": 0,
       "loop_type": "fixed_count",
       "pixel_hex": "#000000",
@@ -301,14 +301,14 @@
       "pixel_y": 0,
       "rotation": 90,
       "stop_time": "00:00",
-      "ui_x": 1.687862523336861,
-      "ui_y": -174.56663624874818
+      "ui_x": -433.77266327576166,
+      "ui_y": -365.1149495230014
     },
     {
       "id": "node_1783275378158",
       "type": "delay",
       "name": "Delay",
-      "delay_ms": 3500,
+      "delay_ms": 2000,
       "rotation": 180,
       "ui_x": 1546.3401576458339,
       "ui_y": 169.3423577468136
@@ -317,10 +317,10 @@
       "id": "node_1783279709712",
       "type": "wait",
       "name": "Wait 4 Relay",
-      "max_wait_ms": 0,
+      "max_wait_ms": 180000,
       "pixel_condition": {
         "hex_color": "#A3D563",
-        "tolerance_percent": 1,
+        "tolerance_percent": 3,
         "x": 610,
         "y": 292
       },
@@ -383,7 +383,7 @@
       "id": "node_1783281148306",
       "type": "delay",
       "name": "Delay",
-      "delay_ms": 3500,
+      "delay_ms": 2000,
       "ui_x": 1925.5084496394406,
       "ui_y": 391.86594240841254
     },
@@ -394,6 +394,122 @@
       "loop_color_id": 0,
       "ui_x": 2130.5777701873762,
       "ui_y": 391.86594240841254
+    },
+    {
+      "id": "node_1783339794456",
+      "type": "condition",
+      "name": "Check Green",
+      "condition": {
+        "hex_color": "#8AB729",
+        "tolerance_percent": 2,
+        "type": "pixel_color",
+        "x": 797,
+        "y": 607
+      },
+      "false_branch": null,
+      "rotation": 0,
+      "true_branch": null,
+      "ui_x": -186.8285316359257,
+      "ui_y": 89.2735093312357
+    },
+    {
+      "id": "node_1783339932781",
+      "type": "condition",
+      "name": "Check Profile",
+      "condition": {
+        "hex_color": "#FCD336",
+        "tolerance_percent": 5,
+        "type": "pixel_color",
+        "x": 580,
+        "y": 592
+      },
+      "false_branch": null,
+      "rotation": 180,
+      "true_branch": null,
+      "ui_x": -186.8285316359257,
+      "ui_y": 203.37488039491512
+    },
+    {
+      "id": "node_1783339960589",
+      "type": "tap",
+      "name": "Tap X Profile",
+      "conditions": [],
+      "duration_ms": 50,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 50,
+      "rand_predelay_min": 0,
+      "rand_x": 2,
+      "rand_y": 2,
+      "randomize": true,
+      "rotation": 270,
+      "ui_x": -982.0849823499044,
+      "ui_y": -118.27511989589249,
+      "x": 1092,
+      "y": 74
+    },
+    {
+      "id": "node_1783340045072",
+      "type": "tap",
+      "name": "Tap X Event",
+      "conditions": [],
+      "duration_ms": 50,
+      "rand_dur_max": 80,
+      "rand_dur_min": 20,
+      "rand_predelay_max": 50,
+      "rand_predelay_min": 0,
+      "rand_x": 2,
+      "rand_y": 2,
+      "randomize": true,
+      "rotation": 270,
+      "ui_x": -798.776765086002,
+      "ui_y": -118.27511989589249,
+      "x": 1138,
+      "y": 46
+    },
+    {
+      "id": "node_1783340258977",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1000,
+      "rotation": 270,
+      "ui_x": -798.776765086002,
+      "ui_y": -15.105708860431292
+    },
+    {
+      "id": "node_1783340260614",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1000,
+      "rotation": 270,
+      "ui_x": -982.0849823499044,
+      "ui_y": -15.105708860431292
+    },
+    {
+      "id": "node_1783340393848",
+      "type": "condition",
+      "name": "Check Event",
+      "condition": {
+        "hex_color": "#3A3E74",
+        "tolerance_percent": 5,
+        "type": "pixel_color",
+        "x": 200,
+        "y": 615
+      },
+      "false_branch": null,
+      "rotation": 180,
+      "true_branch": null,
+      "ui_x": -409.48900587562457,
+      "ui_y": 150.9149735443226
+    },
+    {
+      "id": "node_1783340473449",
+      "type": "delay",
+      "name": "Delay",
+      "delay_ms": 1000,
+      "rotation": 270,
+      "ui_x": -617.6595706847322,
+      "ui_y": -118.27511989589249
     }
   ],
   "connections": [
@@ -415,11 +531,6 @@
     {
       "from": "node_1783269777855",
       "to": "node_1783271604595",
-      "label": "default"
-    },
-    {
-      "from": "node_1783271665129",
-      "to": "node_1783273938352",
       "label": "default"
     },
     {
@@ -536,6 +647,66 @@
       "from": "node_1783280951104",
       "to": "node_1783281148306",
       "label": "false"
+    },
+    {
+      "from": "node_1783271665129",
+      "to": "node_1783339794456",
+      "label": "default"
+    },
+    {
+      "from": "node_1783339794456",
+      "to": "node_1783273938352",
+      "label": "true"
+    },
+    {
+      "from": "node_1783339794456",
+      "to": "node_1783339932781",
+      "label": "false"
+    },
+    {
+      "from": "node_1783339960589",
+      "to": "node_1783269716917",
+      "label": "default"
+    },
+    {
+      "from": "node_1783340258977",
+      "to": "node_1783340045072",
+      "label": "default"
+    },
+    {
+      "from": "node_1783340260614",
+      "to": "node_1783339960589",
+      "label": "default"
+    },
+    {
+      "from": "node_1783339932781",
+      "to": "node_1783340260614",
+      "label": "true"
+    },
+    {
+      "from": "node_1783339932781",
+      "to": "node_1783340393848",
+      "label": "false"
+    },
+    {
+      "from": "node_1783340393848",
+      "to": "node_1783340258977",
+      "label": "true"
+    },
+    {
+      "from": "node_1783340393848",
+      "to": "node_1783340473449",
+      "label": "false"
+    },
+    {
+      "from": "node_1783340473449",
+      "to": "node_1783269716917",
+      "label": "default"
+    },
+    {
+      "from": "node_1783340045072",
+      "to": "node_1783269716917",
+      "label": "default"
     }
   ]
 }

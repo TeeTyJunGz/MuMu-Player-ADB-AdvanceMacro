@@ -1,7 +1,7 @@
 {
-  "id": "macro_1783269712711",
-  "name": "EXP & Money w/ Relay EP6",
-  "description": "Auto Click Cookie Run on EP6. \nUsing Any Cookie with 2 Pits Lift Treasure",
+  "id": "macro_1783634296987_9218",
+  "name": "Box EP3",
+  "description": "Auto Click Cookie Run on EP3. \n",
   "created_at": "2026-07-05T23:41:52.711234",
   "modified_at": "2026-07-05T23:41:52.711234",
   "nodes": [
@@ -140,25 +140,6 @@
       "ui_y": 89.2735093312357
     },
     {
-      "id": "node_1783274124664",
-      "type": "tap",
-      "name": "Tap Booster",
-      "conditions": [],
-      "duration_ms": 120,
-      "rand_dur_max": 80,
-      "rand_dur_min": 20,
-      "rand_predelay_max": 50,
-      "rand_predelay_min": 0,
-      "rand_x": 26,
-      "rand_y": 26,
-      "randomize": true,
-      "rotation": 180,
-      "ui_x": 112.23365336216426,
-      "ui_y": 203.37488039491512,
-      "x": 626,
-      "y": 358
-    },
-    {
       "id": "node_1783274342350",
       "type": "delay",
       "name": "Delay",
@@ -166,23 +147,6 @@
       "rotation": 180,
       "ui_x": 711.6829652233719,
       "ui_y": 203.37488039491512
-    },
-    {
-      "id": "node_1783274444373",
-      "type": "wait",
-      "name": "Wait 4 Booster",
-      "max_wait_ms": 0,
-      "pixel_condition": {
-        "hex_color": "#A3D563",
-        "tolerance_percent": 5,
-        "x": 610,
-        "y": 292
-      },
-      "rotation": 180,
-      "time_ms": 2000,
-      "ui_x": 352.91579980762157,
-      "ui_y": 203.37488039491512,
-      "wait_type": "pixel"
     },
     {
       "id": "node_1783274806829",
@@ -733,16 +697,6 @@
       "label": "default"
     },
     {
-      "from": "node_1783271729731",
-      "to": "node_1783274444373",
-      "label": "default"
-    },
-    {
-      "from": "node_1783274444373",
-      "to": "node_1783274124664",
-      "label": "default"
-    },
-    {
       "from": "node_1783274806829",
       "to": "node_1783274846747",
       "label": "default"
@@ -775,11 +729,6 @@
     {
       "from": "node_1783279770130",
       "to": "node_1783279709712",
-      "label": "default"
-    },
-    {
-      "from": "node_1783274124664",
-      "to": "node_1783279770130",
       "label": "default"
     },
     {
@@ -985,6 +934,11 @@
     {
       "from": "tap_17834222863056401",
       "to": "node_1783359041882",
+      "label": "default"
+    },
+    {
+      "from": "node_1783271729731",
+      "to": "node_1783279770130",
       "label": "default"
     }
   ]

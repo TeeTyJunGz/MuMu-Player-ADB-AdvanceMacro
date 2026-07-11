@@ -1,6 +1,6 @@
 # 🎮 MuMu Player ADB — Advanced Macro GUI
 
-> A powerful, browser-based macro automation tool for MuMu Player (and any Android emulator). Real-time screen mirroring, visual node-graph macro editor, one-click recording, loop systems, anti-cheat randomization, and multi-display support — all from a sleek dark-mode web GUI.
+> A powerful, browser-based macro automation tool for MuMu Player (and any Android emulator). Real-time screen mirroring, visual node-graph macro editor, one-click recording, loop systems, anti-cheat randomization, multi-display support, import/export, and a headless CLI runner — all from a sleek dark-mode web GUI **or** directly from the command line.
 
 ![Main Interface](docs/images/main_interface.png)
 
@@ -15,11 +15,18 @@
 | **Visual Node Editor** | Blueprint-style drag-and-drop macro editor with Tap, Delay, Wait, Key, Loop, and Condition nodes. |
 | **One-Click Macro Recording** | Hit Record, tap on the screen, and the tool captures every touch with accurate coordinates, timing, and hold durations. |
 | **Loop System** | Color-paired Loop Start / Loop End nodes for fixed iterations, infinite loops, time-based, or pixel-color-based loops. |
+| **Loop Progress Badge** | Each macro card shows a live badge of its outermost active loop — `∞` for infinite, `x/N` for fixed count loops. |
 | **Anti-Cheat Randomization** | Built-in "Simulate Human" mode that randomizes tap coordinates, hold duration, and pre-delay to avoid detection. |
 | **Multi-Display Support** | Switch between MuMu's virtual displays (Display 0, 2, 3, etc.) instantly from a dropdown. |
 | **Window Capture Mode** | Bypass ADB video entirely — capture MuMu's render window directly via the Windows Graphics Capture API for ultra-low latency. |
 | **Color Picker / Dropper** | Pick X,Y coordinates and hex colors directly from the live screen for pixel-based conditions. |
 | **Navigation Buttons** | One-click Back, Home, and Recents buttons. |
+| **Pause / Resume** | Pause and resume macro execution without stopping the run entirely. |
+| **Import / Export** | Export macros to a `.json` file to share with others. Import macros from a file shared by another user. |
+| **Copy / Paste Nodes** | Select nodes in the editor and copy-paste them with `Ctrl+C`/`Ctrl+V` or via right-click menu. |
+| **Disable Nodes** | Right-click any node and toggle it disabled — it shows faded on the canvas and is skipped during execution. |
+| **Headless CLI Runner** | Run any macro without the browser GUI using an interactive terminal with arrow-key selection. |
+| **Timestamp Toggle on Logs** | Toggle timestamps on or off in the macro execution log panel. |
 
 ---
 
@@ -43,6 +50,7 @@ All packages are listed in `requirements.txt`:
 | `adbutils` | ADB device communication |
 | `scrcpy-client` | Real-time screen streaming protocol |
 | `numpy` | Frame buffer handling |
+| `questionary` | Interactive arrow-key prompts for the CLI runner |
 | `pywin32` | *(Windows only)* Window enumeration for Window Capture mode |
 | `windows-capture` | *(Windows only)* GPU-accelerated window capture |
 
@@ -69,7 +77,7 @@ pip install -r requirements.txt
 conda create -n MuMuEMU python=3.10 -y
 conda activate MuMuEMU
 conda install -c conda-forge "av>=9,<10" -y
-pip install flask opencv-python adbutils numpy
+pip install flask opencv-python adbutils numpy questionary
 pip install scrcpy-client --no-deps
 ```
 
@@ -203,6 +211,9 @@ After creating or recording a macro, click **Edit** to open the full node editor
 | **Select multiple** | Click and drag on empty canvas to lasso-select. |
 | **Delete nodes** | Select node(s) and press `Delete` or `Backspace`. |
 | **Delete a connection** | Click on the arrow/line between two nodes. |
+| **Copy nodes** | Select node(s) and press `Ctrl+C` or right-click → Copy. |
+| **Paste nodes** | Press `Ctrl+V` or right-click on canvas → Paste. Pasted nodes appear at your mouse cursor. |
+| **Disable a node** | Right-click a node → Toggle Disable. Disabled nodes appear faded and are skipped during execution. |
 | **Zoom** | Scroll wheel. |
 | **Pan** | Middle mouse button drag. |
 | **Rotate node** | Press `R` to rotate a node 90° (changes flow direction). |
@@ -231,6 +242,8 @@ The loop system uses a paired **Loop Start** + **Loop End** node architecture:
 
 You can have **multiple independent loops** by assigning different colors (9 available: Pink, Teal, Orange, Lime, Purple, Cyan, Gold, Rose, Sky).
 
+The **loop progress badge** shows on each macro card in the list: `∞` for infinite loops, `2/20` for "iteration 2 of 20" on fixed-count loops.
+
 ---
 
 ### 🎯 Simulate Human (Anti-Cheat Randomization)
@@ -257,7 +270,7 @@ Every time the node executes (including across loop iterations), it generates a 
 
 ---
 
-### ▶️ Running a Macro
+### ▶️ Running a Macro (Web GUI)
 
 1. Open a macro by clicking **Edit** from the macro list.
 2. Click **▶ Play** — the macro starts executing on the connected device.
@@ -265,7 +278,25 @@ Every time the node executes (including across loop iterations), it generates a 
    - `✅ Tap (931,649)` — successful tap
    - `✅ Wait 2442ms` — delay completed
    - `❌ Timeout` — a wait condition timed out
-4. Click **⏹ Stop** to halt execution immediately (even mid-delay).
+4. Click **⏸ Pause** to pause execution without stopping it. Click again to resume.
+5. Click **⏹ Stop** to halt execution immediately (even mid-delay).
+
+You can also **toggle timestamps** on/off in the execution log using the clock button in the log header.
+
+---
+
+### 📤 Import & Export Macros
+
+You can share macros between users as `.json` files.
+
+#### Export
+1. In the macro list, **right-click** on a macro.
+2. Select **Export** — a `.json` file will be downloaded to your computer.
+
+#### Import
+1. Click the **Import** button in the macro list toolbar.
+2. Select the `.json` file you received from another user.
+3. The macro will appear in your list immediately.
 
 ---
 
@@ -280,11 +311,66 @@ When editing a Tap, Wait, or Condition node, you can pick coordinates and colors
 
 ---
 
+## 💻 Headless CLI Runner
+
+Run macros directly from the terminal **without the web GUI**. This is significantly more CPU and RAM efficient — no video encoding, no browser, no HTTP server.
+
+### Quick Start
+
+```bash
+python cli.py
+```
+
+The CLI will guide you through **three interactive steps** using arrow keys:
+
+```
+  ◆  Scanning for ADB devices...
+? Select ADB device:  (use arrow keys)
+  ❯  emulator-5554  (device)
+     127.0.0.1:5555  (device)
+
+  ◆  Scanning displays on emulator-5554...
+? Select display:
+  ❯  Display 0  (default / main screen)
+     Display 7  (Port: 6)
+
+  ◆  Loading saved macros...
+? Select macro to run:
+  ❯  Auto Farm  (12 nodes)
+     EXP & Money w/ Relay EP6  (47 nodes)
+
+? Start macro? (Y/n)
+```
+
+### Controls During Execution
+
+| Key | Action |
+|---|---|
+| `P` | Pause / Resume macro |
+| `Ctrl+C` | Stop and exit |
+
+### CLI Arguments (Advanced)
+
+The CLI also supports quick one-liner arguments for scripting:
+
+```bash
+# List all connected ADB devices and their displays
+python cli.py --list-devices
+
+# List all saved macros
+python cli.py --list-macros
+```
+
+> **Note:** The interactive CLI runner requires Windows (uses `msvcrt` for keypress detection). The `P` key pause feature is Windows-only.
+
+---
+
 ## 🏗️ Project Structure
 
 ```
 MuMuADB/
 ├── app.py                  # Flask backend — all API routes, scrcpy client, frame streaming
+├── cli.py                  # Headless CLI runner with interactive TUI prompts
 ├── requirements.txt        # Python dependencies
 ├── platform-tools/         # Bundled ADB binaries
 ├── templates/
@@ -307,7 +393,9 @@ MuMuADB/
 | Tip | Effect |
 |---|---|
 | Use **Window Capture** mode instead of ADB | Significantly lower latency and CPU usage (Windows only, same-PC only). |
+| **Use `cli.py`** instead of the web GUI | No browser, no frame encoding, no HTTP streaming. Drastically lower CPU/RAM use. |
 | Connect via **USB** instead of WiFi ADB | Cuts the largest chunk of streaming latency. |
+| **Close the browser tab** while macro runs | The server stops encoding video if no client is watching. |
 | Lower `JPEG_QUALITY` in `app.py` | Smaller frames = faster encode/transfer (default 70). |
 | Lower `bitrate` in `connect_device()` | Less data to encode on-device (default 8Mbps). |
 | Set `max_fps=30` | Fewer frames = less CPU pressure on the encoder. |
@@ -325,6 +413,9 @@ MuMuADB/
 | **Window Capture mode unavailable** | Install `pywin32` and `windows-capture` (`pip install pywin32 windows-capture`). Windows only. |
 | **Window Capture feed freezes** | Don't minimize MuMu's "Android Device" window — it stops rendering when minimized. |
 | **Crop top is wrong** | Adjust the **Crop top (px)** field (default 40). This varies with Windows DPI scaling. |
+| **CLI shows no devices** | Run `adb start-server` or `adb devices` first to make sure the ADB daemon is running. |
+| **Color-based nodes fail in CLI** | The CLI auto-selects the highest virtual display. If wrong, check `--list-devices` to find the correct display ID and re-run. |
+| **Paste duplicates nodes multiple times** | This is fixed — the context menu now uses `onclick` instead of stacking event listeners. Refresh the page. |
 
 ---
 
